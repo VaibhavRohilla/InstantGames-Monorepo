@@ -1,3 +1,4 @@
+// NOTE: Stub math implementation for prototyping only; not production-ready.
 export interface PlinkoConfig {
   rows: number;
   payouts: number[]; // per bucket multiplier

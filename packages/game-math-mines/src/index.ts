@@ -1,3 +1,4 @@
+// NOTE: Stub math implementation for prototyping only; not production-ready.
 import { randomUUID } from "crypto";
 
 export interface MinesConfig {

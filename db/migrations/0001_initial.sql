@@ -1,4 +1,4 @@
-i aCREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS operators (
     id TEXT PRIMARY KEY,
@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS game_rounds (
 
 CREATE INDEX IF NOT EXISTS idx_game_rounds_user ON game_rounds (user_id, game, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_game_rounds_operator ON game_rounds (operator_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_game_rounds_operator_mode ON game_rounds (operator_id, game, mode, created_at DESC);
+ALTER TABLE game_rounds ADD CONSTRAINT unique_pf_nonce UNIQUE (operator_id, user_id, game, mode, nonce);
 
 CREATE TABLE IF NOT EXISTS wallet_transactions (
     id UUID PRIMARY KEY,
@@ -57,8 +59,8 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
     mode TEXT NOT NULL,
     currency TEXT NOT NULL,
     amount NUMERIC(36, 0) NOT NULL,
-    balance_before NUMERIC(36, 0),
-    balance_after NUMERIC(36, 0),
+    balance_before NUMERIC(36, 0) NOT NULL,
+    balance_after NUMERIC(36, 0) NOT NULL,
     type TEXT NOT NULL,
     game TEXT NOT NULL,
     round_id UUID NOT NULL REFERENCES game_rounds(id),
@@ -68,3 +70,4 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
 
 CREATE INDEX IF NOT EXISTS idx_wallet_tx_user ON wallet_transactions (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_wallet_tx_operator ON wallet_transactions (operator_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_wallet_tx_round ON wallet_transactions (round_id);

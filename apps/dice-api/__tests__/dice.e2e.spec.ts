@@ -12,45 +12,40 @@ import { ProvablyFairRngService, RNG_SERVICE } from "@instant-games/core-rng";
 import { GAME_CONFIG_SERVICE, DbGameConfigService } from "@instant-games/core-config";
 import { GameRoundRepository, GAME_ROUND_REPOSITORY } from "@instant-games/core-game-history";
 import { WalletTransactionRepository, WALLET_TRANSACTION_REPOSITORY } from "@instant-games/core-ledger";
-import { DemoWalletService, WalletRouter, WALLET_ROUTER } from "@instant-games/core-wallet";
+import { DemoWalletService, WalletRouter, WALLET_ROUTER, scopeWalletUserId } from "@instant-games/core-wallet";
 import { IDEMPOTENCY_STORE, RedisIdempotencyStore } from "@instant-games/core-idempotency";
 import { LOGGER, ILogger } from "@instant-games/core-logging";
 import { IMetrics, METRICS } from "@instant-games/core-metrics";
 import { NoopBonusPort, BONUS_PORT } from "@instant-games/core-bonus";
 import { RiskService, RISK_SERVICE } from "@instant-games/core-risk";
-import { IDbClient } from "@instant-games/core-db";
-import { IKeyValueStore, ILockManager } from "@instant-games/core-redis";
-
-const BIGINT_PREFIX = "__bigint__:";
+import { DB_CLIENT, IDbClient } from "@instant-games/core-db";
+import { IKeyValueStore, ILockManager, deserializeFromRedis, serializeForRedis } from "@instant-games/core-redis";
 
 class InMemoryStore implements IKeyValueStore {
   private store = new Map<string, string>();
 
   async get<T>(key: string): Promise<T | null> {
-    const value = this.store.get(key);
-    return value ? (JSON.parse(value, this.reviver) as T) : null;
+    return deserializeFromRedis<T>(this.store.get(key) ?? null);
   }
 
   async set<T>(key: string, value: T): Promise<void> {
-    this.store.set(key, JSON.stringify(value, this.replacer));
+    this.store.set(key, serializeForRedis(value));
+  }
+
+  async setNx(key: string, value: string, _ttlSeconds?: number): Promise<boolean> {
+    if (this.store.has(key)) return false;
+    this.store.set(key, serializeForRedis(value));
+    return true;
+  }
+
+  async incr(key: string, _ttlSeconds?: number): Promise<number> {
+    const next = Number(this.store.get(key) ?? "0") + 1;
+    this.store.set(key, next.toString());
+    return next;
   }
 
   async del(key: string): Promise<void> {
     this.store.delete(key);
-  }
-
-  private replacer(_key: string, value: unknown) {
-    if (typeof value === "bigint") {
-      return `${BIGINT_PREFIX}${value.toString()}`;
-    }
-    return value;
-  }
-
-  private reviver(_key: string, value: unknown) {
-    if (typeof value === "string" && value.startsWith(BIGINT_PREFIX)) {
-      return BigInt(value.slice(BIGINT_PREFIX.length));
-    }
-    return value;
   }
 }
 
@@ -237,6 +232,7 @@ describe("Dice API e2e", () => {
           inject: [GAME_CONFIG_SERVICE],
         },
         { provide: BONUS_PORT, useClass: NoopBonusPort },
+        { provide: DB_CLIENT, useValue: dbClient },
       ],
     }).compile();
 
@@ -244,7 +240,7 @@ describe("Dice API e2e", () => {
     await app.init();
 
     const walletRouter = app.get<WalletRouter>(WALLET_ROUTER);
-    await walletRouter.resolve("demo").credit("player-1", BigInt(1000), "USD", "demo");
+    await walletRouter.resolve("demo").credit(scopeWalletUserId("op-test", "player-1"), BigInt(1000), "USD", "demo");
   });
 
 afterAll(async () => {
@@ -259,6 +255,7 @@ afterAll(async () => {
       .set("x-user-id", "player-1")
       .set("x-operator-id", "op-test")
       .set("x-currency", "USD")
+      .set("x-idempotency-key", "idem-1")
       .send({ betAmount: "100", target: 50, condition: "under" })
       .expect(201);
 
@@ -271,5 +268,44 @@ afterAll(async () => {
 
     const txs = await dbClient.query(`SELECT * FROM wallet_transactions WHERE round_id = $1`, [response.body.roundId]);
     expect(txs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("rejects bets when mode is disabled", async () => {
+    await dbClient.query(`UPDATE game_configs SET demo_enabled = FALSE WHERE operator_id = $1`, ["op-test"]);
+    await kvStore.del("config:op-test:dice:USD:demo");
+
+    await request(app.getHttpServer())
+      .post("/dice/bet")
+      .set("x-user-id", "player-1")
+      .set("x-operator-id", "op-test")
+      .set("x-currency", "USD")
+      .set("x-idempotency-key", "idem-2")
+      .send({ betAmount: "100", target: 50, condition: "under" })
+      .expect(403);
+
+    await dbClient.query(`UPDATE game_configs SET demo_enabled = TRUE WHERE operator_id = $1`, ["op-test"]);
+    await kvStore.del("config:op-test:dice:USD:demo");
+  });
+
+  it("returns cached response for duplicate idempotency keys", async () => {
+    const responseA = await request(app.getHttpServer())
+      .post("/dice/bet")
+      .set("x-user-id", "player-1")
+      .set("x-operator-id", "op-test")
+      .set("x-currency", "USD")
+      .set("x-idempotency-key", "idem-3")
+      .send({ betAmount: "100", target: 55, condition: "under" })
+      .expect(201);
+
+    const responseB = await request(app.getHttpServer())
+      .post("/dice/bet")
+      .set("x-user-id", "player-1")
+      .set("x-operator-id", "op-test")
+      .set("x-currency", "USD")
+      .set("x-idempotency-key", "idem-3")
+      .send({ betAmount: "100", target: 55, condition: "under" })
+      .expect(201);
+
+    expect(responseB.body.roundId).toBe(responseA.body.roundId);
   });
 });

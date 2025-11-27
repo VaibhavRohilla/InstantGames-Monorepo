@@ -40,22 +40,13 @@ export class RiskService implements IRiskService {
 
   private async enforceRateLimit(ctx: AuthContext, game: GameName, config: Awaited<ReturnType<IGameConfigService["getConfig"]>>) {
     const key = RATE_LIMIT_KEY(ctx, game);
-    const record = (await this.store.get<{ count: number; expiresAt: number }>(key)) ?? { count: 0, expiresAt: Date.now() + 60_000 };
     const windowMs = Number(config.extra?.betsPerWindowMs ?? 60_000);
     const limit = Number(config.extra?.betsPerWindow ?? 60);
+    const ttlSeconds = Math.max(1, Math.ceil(windowMs / 1000));
 
-    const now = Date.now();
-    let nextRecord = record;
-    if (now > record.expiresAt) {
-      nextRecord = { count: 0, expiresAt: now + windowMs };
-    }
-
-    if (nextRecord.count >= limit) {
+    const count = await this.store.incr(key, ttlSeconds);
+    if (count > limit) {
       throw new RiskViolationError("BET_RATE_LIMIT_EXCEEDED");
     }
-
-    nextRecord = { ...nextRecord, count: nextRecord.count + 1 };
-    const ttlSeconds = Math.ceil((nextRecord.expiresAt - now) / 1000);
-    await this.store.set(key, nextRecord, ttlSeconds);
   }
 }

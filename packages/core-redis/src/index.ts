@@ -6,6 +6,8 @@ import { randomUUID } from "crypto";
 export interface IKeyValueStore {
   get<T>(key: string): Promise<T | null>;
   set<T>(key: string, value: T, ttlSeconds?: number): Promise<void>;
+  setNx(key: string, value: string, ttlSeconds?: number): Promise<boolean>;
+  incr(key: string, ttlSeconds?: number): Promise<number>;
   del(key: string): Promise<void>;
 }
 
@@ -23,22 +25,87 @@ export const KEY_VALUE_STORE = Symbol("KEY_VALUE_STORE");
 export const LOCK_MANAGER = Symbol("LOCK_MANAGER");
 export const PUB_SUB = Symbol("PUB_SUB");
 
+const BIGINT_FLAG = "__ig_bigint__";
+
+export function serializeForRedis(value: unknown): string {
+  const replacer = (input: unknown): unknown => {
+    if (typeof input === "bigint") {
+      return { [BIGINT_FLAG]: input.toString() };
+    }
+    if (Array.isArray(input)) {
+      return input.map((item) => replacer(item));
+    }
+    if (input && typeof input === "object") {
+      return Object.entries(input as Record<string, unknown>).reduce<Record<string, unknown>>((acc, [key, val]) => {
+        acc[key] = replacer(val);
+        return acc;
+      }, {});
+    }
+    return input;
+  };
+
+  return JSON.stringify(replacer(value));
+}
+
+export function deserializeFromRedis<T>(payload: string | null): T | null {
+  if (!payload) return null;
+  const reviver = (input: unknown): unknown => {
+    if (Array.isArray(input)) {
+      return input.map((item) => reviver(item));
+    }
+    if (input && typeof input === "object") {
+      const obj = input as Record<string, unknown>;
+      if (Object.keys(obj).length === 1 && typeof obj[BIGINT_FLAG] === "string") {
+        try {
+          return BigInt(obj[BIGINT_FLAG] as string);
+        } catch {
+          return obj[BIGINT_FLAG];
+        }
+      }
+      return Object.entries(obj).reduce<Record<string, unknown>>((acc, [key, val]) => {
+        acc[key] = reviver(val);
+        return acc;
+      }, {});
+    }
+    return input;
+  };
+
+  return reviver(JSON.parse(payload)) as T;
+}
+
 export class RedisKeyValueStore implements IKeyValueStore {
   constructor(private readonly redis: Redis) {}
 
   async get<T>(key: string): Promise<T | null> {
     const result = await this.redis.get(key);
-    if (!result) return null;
-    return JSON.parse(result) as T;
+    return deserializeFromRedis<T>(result);
   }
 
   async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
-    const payload = JSON.stringify(value);
+    const payload = serializeForRedis(value);
     if (ttlSeconds) {
       await this.redis.set(key, payload, "EX", ttlSeconds);
     } else {
       await this.redis.set(key, payload);
     }
+  }
+
+  async setNx(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
+    const payload = serializeForRedis(value);
+    if (ttlSeconds) {
+      const response = await this.redis.set(key, payload, "EX", ttlSeconds, "NX");
+      return response === "OK";
+    }
+    const response = await this.redis.set(key, payload, "NX");
+    return response === "OK";
+  }
+
+  async incr(key: string, ttlSeconds?: number): Promise<number> {
+    const value = await this.redis.incr(key);
+    if (ttlSeconds) {
+      await this.redis.expire(key, ttlSeconds);
+    }
+    return value;
   }
 
   async del(key: string): Promise<void> {

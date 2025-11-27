@@ -1,5 +1,5 @@
 import { randomBytes, createHmac, createHash } from "crypto";
-import { GameName } from "@instant-games/core-types";
+import { GameMode, GameName } from "@instant-games/core-types";
 import { IKeyValueStore } from "@instant-games/core-redis";
 
 export interface ProvablyFairContext {
@@ -28,9 +28,9 @@ export interface IProvablyFairService {
 }
 
 export interface IProvablyFairStateStore {
-  getOrInitContext(userId: string, game: GameName, clientSeed?: string): Promise<ProvablyFairContext>;
-  nextNonce(userId: string, game: GameName): Promise<number>;
-  revealServerSeed(userId: string, game: GameName): Promise<string | null>;
+  getOrInitContext(params: { operatorId: string; mode: GameMode; userId: string; game: GameName; clientSeed?: string }): Promise<ProvablyFairContext>;
+  nextNonce(params: { operatorId: string; mode: GameMode; userId: string; game: GameName }): Promise<number>;
+  revealServerSeed(params: { operatorId: string; mode: GameMode; userId: string; game: GameName }): Promise<string | null>;
 }
 
 export const PROVABLY_FAIR_SERVICE = Symbol("PROVABLY_FAIR_SERVICE");
@@ -88,40 +88,47 @@ export class ProvablyFairService implements IProvablyFairService {
   }
 }
 
-const CONTEXT_KEY = (userId: string, game: GameName) => `pf:ctx:${game}:${userId}`;
-const NONCE_KEY = (userId: string, game: GameName) => `pf:nonce:${game}:${userId}`;
+const CONTEXT_KEY = (operatorId: string, mode: GameMode, game: GameName, userId: string) =>
+  `pf:ctx:${operatorId}:${mode}:${game}:${userId}`;
+const NONCE_KEY = (operatorId: string, mode: GameMode, game: GameName, userId: string) =>
+  `pf:nonce:${operatorId}:${mode}:${game}:${userId}`;
 
 export class RedisProvablyFairStateStore implements IProvablyFairStateStore {
   constructor(private readonly kv: IKeyValueStore, private readonly pfService: IProvablyFairService, private readonly ttlSeconds = 60 * 60 * 24) {}
 
-  async getOrInitContext(userId: string, game: GameName, clientSeed?: string): Promise<ProvablyFairContext> {
-    const key = CONTEXT_KEY(userId, game);
+  async getOrInitContext(params: { operatorId: string; mode: GameMode; userId: string; game: GameName; clientSeed?: string }): Promise<ProvablyFairContext> {
+    const { operatorId, mode, userId, game, clientSeed } = params;
+    const key = CONTEXT_KEY(operatorId, mode, game, userId);
     const existing = await this.kv.get<ProvablyFairContext>(key);
     if (existing) {
       if (clientSeed && existing.clientSeed !== clientSeed) {
         existing.clientSeed = clientSeed;
         existing.nonce = 0;
         await this.kv.set(key, existing, this.ttlSeconds);
+        await this.kv.del(NONCE_KEY(operatorId, mode, game, userId));
+        return existing;
       }
+      await this.kv.set(key, existing, this.ttlSeconds);
       return existing;
     }
 
     const ctx = await this.pfService.initContext({ userId, game, clientSeed });
     await this.kv.set(key, ctx, this.ttlSeconds);
-    await this.kv.set(NONCE_KEY(userId, game), { nonce: 0 }, this.ttlSeconds);
     return ctx;
   }
 
-  async nextNonce(userId: string, game: GameName): Promise<number> {
-    const key = NONCE_KEY(userId, game);
-    const record = (await this.kv.get<{ nonce: number }>(key)) ?? { nonce: 0 };
-    const next = record.nonce + 1;
-    await this.kv.set(key, { nonce: next }, this.ttlSeconds);
+  async nextNonce(params: { operatorId: string; mode: GameMode; userId: string; game: GameName }): Promise<number> {
+    const { operatorId, mode, userId, game } = params;
+    const key = NONCE_KEY(operatorId, mode, game, userId);
+    const next = await this.kv.incr(key, this.ttlSeconds);
     return next;
   }
 
-  async revealServerSeed(userId: string, game: GameName): Promise<string | null> {
-    const ctx = await this.kv.get<ProvablyFairContext>(CONTEXT_KEY(userId, game));
+  async revealServerSeed(params: { operatorId: string; mode: GameMode; userId: string; game: GameName }): Promise<string | null> {
+    const { operatorId, mode, userId, game } = params;
+    const ctx = await this.kv.get<ProvablyFairContext>(CONTEXT_KEY(operatorId, mode, game, userId));
     return ctx?.serverSeed ?? null;
   }
 }
+
+// TODO: Expose server-seed rotation and historical reveal APIs for external verification.

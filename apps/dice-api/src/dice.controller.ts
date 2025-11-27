@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Inject, Post, UseGuards } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Headers, Inject, Post, UseGuards } from "@nestjs/common";
 import { AuthGuard, AuthContext, CurrentUser } from "@instant-games/core-auth";
 import { DiceService } from "./dice.service";
 import { DiceBetDto } from "./dto/dice-bet.dto";
@@ -20,6 +20,9 @@ export class DiceController {
     @Body() dto: DiceBetDto,
     @Headers("x-idempotency-key") idempotencyKey?: string,
   ): Promise<DiceBetResponse> {
+    if (!idempotencyKey) {
+      throw new BadRequestException("x-idempotency-key header is required");
+    }
     return this.diceService.placeBet(ctx, dto, idempotencyKey);
   }
 }

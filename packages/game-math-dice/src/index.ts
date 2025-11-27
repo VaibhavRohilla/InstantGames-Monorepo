@@ -20,6 +20,8 @@ export interface DiceEvaluationResult {
   payout: bigint;
 }
 
+const MULTIPLIER_SCALE = 10_000n;
+
 export class DiceMathEngine {
   constructor(private readonly config: DiceMathConfig) {}
 
@@ -27,7 +29,7 @@ export class DiceMathEngine {
     this.validateBet(bet);
     const multiplier = this.computeMultiplier(bet);
     const win = this.didPlayerWin(bet, rolled);
-    const payout = win ? BigInt(Math.floor(Number(betAmount) * multiplier)) : BigInt(0);
+    const payout = win ? this.applyMultiplier(betAmount, multiplier) : BigInt(0);
 
     return {
       rolled,
@@ -39,7 +41,7 @@ export class DiceMathEngine {
 
   estimateMaxPayout(betAmount: bigint, bet: DiceBetInput): bigint {
     const multiplier = this.computeMultiplier(bet);
-    return BigInt(Math.floor(Number(betAmount) * multiplier));
+    return this.applyMultiplier(betAmount, multiplier);
   }
 
   private validateBet(bet: DiceBetInput) {
@@ -66,5 +68,10 @@ export class DiceMathEngine {
       multiplier = Math.min(multiplier, this.config.maxMultiplier);
     }
     return Number(multiplier.toFixed(4));
+  }
+
+  private applyMultiplier(amount: bigint, multiplier: number): bigint {
+    const scaledMultiplier = BigInt(Math.round(multiplier * Number(MULTIPLIER_SCALE)));
+    return (amount * scaledMultiplier) / MULTIPLIER_SCALE;
   }
 }

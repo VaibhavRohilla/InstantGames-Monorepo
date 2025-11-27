@@ -2,7 +2,7 @@ import { IsIn, IsInt, IsOptional, IsString, Matches, Max, Min } from "class-vali
 
 export class DiceBetDto {
   @IsString()
-  @Matches(/^[0-9]+$/)
+  @Matches(/^(?!0+$)\d+$/, { message: "betAmount must be a positive integer string" })
   betAmount!: string;
 
   @IsInt()

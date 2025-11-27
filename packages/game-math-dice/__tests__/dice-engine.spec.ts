@@ -22,4 +22,11 @@ describe("DiceMathEngine", () => {
     expect(result.win).toBe(false);
     expect(result.payout).toBe(BigInt(0));
   });
+
+  it("handles large bet amounts without precision loss", () => {
+    const betAmount = BigInt("9007199254740995");
+    const result = engine.evaluate(betAmount, { target: 49, condition: "under" }, 10);
+    expect(result.win).toBe(true);
+    expect(result.payout).toBeGreaterThan(BigInt(0));
+  });
 });

@@ -1,3 +1,4 @@
+// NOTE: Stub math implementation for prototyping only; not production-ready.
 export type HiloChoice = "higher" | "lower";
 
 export interface HiloConfig {
