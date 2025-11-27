@@ -38,10 +38,25 @@ export class DiceService {
   async placeBet(ctx: AuthContext, dto: DiceBetDto, idempotencyKey: string): Promise<DiceBetResponse> {
     const runner = () => this.executeBet(ctx, dto);
     const cacheKey = `${GAME}:${ctx.operatorId}:${ctx.userId}:${idempotencyKey}`;
+    this.logger.info("dice.bet.received", this.logFields(ctx, { idempotencyKey }));
     try {
-      return await this.idempotencyStore.performOrGetCached(cacheKey, 60, runner);
+      return await this.idempotencyStore.performOrGetCached(cacheKey, 60, runner, {
+        onCached: (cached) => {
+          this.logger.info(
+            "dice.bet.idempotent.cached",
+            this.logFields(ctx, { idempotencyKey, roundId: cached.roundId })
+          );
+          this.metrics.increment("bets_total", {
+            game: GAME,
+            operatorId: ctx.operatorId,
+            mode: ctx.mode,
+            status: "cached",
+          });
+        },
+      });
     } catch (err) {
       if (err instanceof Error && err.message === "IDEMPOTENCY_IN_PROGRESS") {
+        this.logger.warn("dice.bet.idempotent.conflict", this.logFields(ctx, { idempotencyKey }));
         throw new ConflictException("Idempotent request is still processing");
       }
       throw err;
@@ -51,6 +66,7 @@ export class DiceService {
   private async executeBet(ctx: AuthContext, dto: DiceBetDto): Promise<DiceBetResponse> {
     const start = Date.now();
     const betAmount = BigInt(dto.betAmount);
+    this.logger.info("dice.bet.started", this.logFields(ctx, { betAmount: betAmount.toString() }));
     const config = await this.configService.getConfig({ ctx, game: GAME });
     if (ctx.mode === "demo" && !config.demoEnabled) {
       throw new ForbiddenException("MODE_DISABLED");
@@ -83,6 +99,7 @@ export class DiceService {
     try {
       await wallet.debitIfSufficient(scopedUserId, betAmount, ctx.currency, ctx.mode);
       debited = true;
+      this.metrics.increment("wallet_operations_total", this.walletMetricLabels(ctx, "debit"));
       balanceAfterBet = await wallet.getBalance(scopedUserId, ctx.currency, ctx.mode);
       pfContext = await this.provablyFairStore.getOrInitContext({
         operatorId: ctx.operatorId,
@@ -103,6 +120,7 @@ export class DiceService {
       if (evaluation.payout > BigInt(0)) {
         await wallet.credit(scopedUserId, evaluation.payout, ctx.currency, ctx.mode);
         payoutCredited = true;
+         this.metrics.increment("wallet_operations_total", this.walletMetricLabels(ctx, "credit"));
         balanceAfterPayout = await wallet.getBalance(scopedUserId, ctx.currency, ctx.mode);
       }
 
@@ -121,7 +139,7 @@ export class DiceService {
           serverSeed: pfContext!.serverSeed,
           clientSeed: pfContext!.clientSeed,
           nonce,
-          meta: { bet: dto },
+          meta: { bet: dto, pfSeedId: pfContext!.serverSeedId },
         });
         roundId = round.id;
 
@@ -177,24 +195,41 @@ export class DiceService {
         mode: ctx.mode,
       });
 
-      this.metrics.increment("bets_count", { game: GAME, operator: ctx.operatorId, mode: ctx.mode });
-      this.metrics.observe("round_latency_ms", Date.now() - start, { game: GAME });
-      this.logger.info("dice.round.settled", {
-        userId: ctx.userId,
+      this.metrics.increment("bets_total", {
+        game: GAME,
         operatorId: ctx.operatorId,
-        roundId: roundId!,
-        betAmount: betAmount.toString(),
-        payout: evaluation.payout.toString(),
+        mode: ctx.mode,
+        status: "success",
       });
+      this.metrics.observe("round_latency_ms", Date.now() - start, {
+        game: GAME,
+        operatorId: ctx.operatorId,
+        mode: ctx.mode,
+      });
+      this.logger.info(
+        "dice.bet.settled",
+        this.logFields(ctx, {
+          roundId: roundId!,
+          betAmount: betAmount.toString(),
+          payout: evaluation.payout.toString(),
+        })
+      );
 
       return this.toResponse(settledRound.id, evaluation, pfContext!, nonce, settledRound.createdAt.toISOString(), config.mathVersion, dto);
     } catch (error) {
-      this.metrics.increment("bets_failed_count", { reason: error instanceof Error ? error.message : "unknown" });
-      this.logger.error("dice.round.failed", {
-        userId: ctx.userId,
+      this.metrics.increment("bets_total", {
+        game: GAME,
         operatorId: ctx.operatorId,
-        error: error instanceof Error ? error.message : error,
+        mode: ctx.mode,
+        status: "failure",
       });
+      this.logger.error(
+        "dice.bet.failed",
+        this.logFields(ctx, {
+          roundId,
+          error: error instanceof Error ? error.message : String(error),
+        })
+      );
       if (payoutCredited && evaluation && evaluation.payout > BigInt(0)) {
         await wallet
           .debitIfSufficient(scopedUserId, evaluation.payout, ctx.currency, ctx.mode)
@@ -203,10 +238,15 @@ export class DiceService {
       if (debited && !settled) {
         try {
           await wallet.credit(scopedUserId, betAmount, ctx.currency, ctx.mode);
+          this.metrics.increment("wallet_operations_total", this.walletMetricLabels(ctx, "refund"));
           const balanceAfterRefund = await wallet.getBalance(scopedUserId, ctx.currency, ctx.mode);
           if (roundId) {
             await this.recordRefund(ctx, roundId, betAmount, balanceAfterRefund);
           }
+          this.logger.info(
+            "dice.bet.refunded",
+            this.logFields(ctx, { roundId, amount: betAmount.toString() })
+          );
         } catch {
           this.logger.error("wallet.refund_failed");
         }
@@ -245,6 +285,26 @@ export class DiceService {
         err: err instanceof Error ? err.message : err,
       });
     }
+  }
+
+  private walletMetricLabels(ctx: AuthContext, type: string): Record<string, string> {
+    return {
+      game: GAME,
+      operatorId: ctx.operatorId,
+      mode: ctx.mode,
+      type,
+    };
+  }
+
+  private logFields(ctx: AuthContext, extra: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      operatorId: ctx.operatorId,
+      userId: ctx.userId,
+      game: GAME,
+      mode: ctx.mode,
+      currency: ctx.currency,
+      ...extra,
+    };
   }
 
   private buildMathConfig(extra: Record<string, unknown>, mathVersion: string): DiceMathConfig {

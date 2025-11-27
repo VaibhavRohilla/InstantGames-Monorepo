@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@instant-games/core-db": "workspace:*",
     "@instant-games/core-redis": "workspace:*",
     "@instant-games/core-types": "workspace:*"
   }

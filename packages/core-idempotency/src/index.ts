@@ -1,7 +1,11 @@
 import { IKeyValueStore } from "@instant-games/core-redis";
 
+export interface PerformOptions<T> {
+  onCached?: (cached: T) => void;
+}
+
 export interface IIdempotencyStore {
-  performOrGetCached<T>(key: string, ttlSeconds: number, fn: () => Promise<T>): Promise<T>;
+  performOrGetCached<T>(key: string, ttlSeconds: number, fn: () => Promise<T>, options?: PerformOptions<T>): Promise<T>;
 }
 
 export const IDEMPOTENCY_STORE = Symbol("IDEMPOTENCY_STORE");
@@ -9,12 +13,13 @@ export const IDEMPOTENCY_STORE = Symbol("IDEMPOTENCY_STORE");
 export class RedisIdempotencyStore implements IIdempotencyStore {
   constructor(private readonly store: IKeyValueStore, private readonly pollIntervalMs = 50) {}
 
-  async performOrGetCached<T>(key: string, ttlSeconds: number, fn: () => Promise<T>): Promise<T> {
+  async performOrGetCached<T>(key: string, ttlSeconds: number, fn: () => Promise<T>, options?: PerformOptions<T>): Promise<T> {
     const cacheKey = `idem:${key}`;
     const lockKey = `idem:lock:${key}`;
 
     const cached = await this.store.get<{ payload: T }>(cacheKey);
     if (cached) {
+      options?.onCached?.(cached.payload);
       return cached.payload;
     }
 

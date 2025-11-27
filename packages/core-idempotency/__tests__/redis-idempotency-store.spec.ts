@@ -46,6 +46,10 @@ describe("RedisIdempotencyStore", () => {
 
     expect(first).toEqual(second);
     expect(handler).toHaveBeenCalledTimes(1);
+
+    const cachedSpy = vi.fn();
+    await store.performOrGetCached("test", 2, handler, { onCached: cachedSpy });
+    expect(cachedSpy).toHaveBeenCalledWith(first);
   });
 });
 

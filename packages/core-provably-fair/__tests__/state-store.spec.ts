@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { ProvablyFairService, RedisProvablyFairStateStore } from "@instant-games/core-provably-fair";
+import { RedisProvablyFairStateStore, IPfRotationService, PfServerSeedRecord, PfSeedHistory } from "@instant-games/core-provably-fair";
 import { IKeyValueStore, serializeForRedis, deserializeFromRedis } from "@instant-games/core-redis";
+import { GameMode, GameName } from "@instant-games/core-types";
 
 class MemoryKvStore implements IKeyValueStore {
   private store = new Map<string, string>();
@@ -30,11 +31,74 @@ class MemoryKvStore implements IKeyValueStore {
   }
 }
 
+class StubRotationService implements IPfRotationService {
+  private seeds = new Map<string, PfServerSeedRecord>();
+
+  async getActiveSeed(params: { operatorId: string; game: GameName; mode: GameMode }): Promise<PfServerSeedRecord> {
+    const key = this.key(params);
+    const existing = this.seeds.get(key);
+    if (existing) {
+      return existing;
+    }
+    const seed: PfServerSeedRecord = {
+      id: key,
+      operatorId: params.operatorId,
+      game: params.game,
+      mode: params.mode,
+      serverSeed: `seed-${key}`,
+      serverSeedHash: `hash-${key}`,
+      createdAt: new Date(),
+      rotatedAt: null,
+      active: true,
+    };
+    this.seeds.set(key, seed);
+    return seed;
+  }
+
+  async rotateServerSeed(params: { operatorId: string; game: GameName; mode: GameMode }): Promise<PfServerSeedRecord> {
+    const key = this.key(params);
+    const updated: PfServerSeedRecord = {
+      id: `${key}-${Date.now()}`,
+      operatorId: params.operatorId,
+      game: params.game,
+      mode: params.mode,
+      serverSeed: `seed-${Date.now()}`,
+      serverSeedHash: `hash-${Date.now()}`,
+      createdAt: new Date(),
+      rotatedAt: null,
+      active: true,
+    };
+    this.seeds.set(key, updated);
+    return updated;
+  }
+
+  async getSeedHistory(params: { operatorId: string; game: GameName; mode: GameMode; limit?: number }): Promise<PfSeedHistory[]> {
+    const key = this.key(params);
+    const seed = this.seeds.get(key);
+    if (!seed) {
+      return [];
+    }
+    return [
+      {
+        id: seed.id,
+        serverSeedHash: seed.serverSeedHash,
+        serverSeed: seed.serverSeed,
+        createdAt: seed.createdAt,
+        rotatedAt: seed.rotatedAt,
+        active: seed.active,
+      },
+    ];
+  }
+
+  private key(params: { operatorId: string; game: GameName; mode: GameMode }) {
+    return `${params.operatorId}:${params.game}:${params.mode}`;
+  }
+}
+
 describe("RedisProvablyFairStateStore", () => {
   it("isolates PF contexts per operator and mode", async () => {
-    const service = new ProvablyFairService();
     const kv = new MemoryKvStore();
-    const store = new RedisProvablyFairStateStore(kv, service);
+    const store = new RedisProvablyFairStateStore(kv, new StubRotationService());
 
     const ctxA = await store.getOrInitContext({ operatorId: "opA", mode: "demo", userId: "user1", game: "dice" });
     const ctxB = await store.getOrInitContext({ operatorId: "opB", mode: "demo", userId: "user1", game: "dice" });
@@ -43,9 +107,8 @@ describe("RedisProvablyFairStateStore", () => {
   });
 
   it("increments nonce atomically", async () => {
-    const service = new ProvablyFairService();
     const kv = new MemoryKvStore();
-    const store = new RedisProvablyFairStateStore(kv, service);
+    const store = new RedisProvablyFairStateStore(kv, new StubRotationService());
 
     await store.getOrInitContext({ operatorId: "opA", mode: "demo", userId: "user2", game: "dice" });
     const [first, second] = await Promise.all([

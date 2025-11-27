@@ -1,4 +1,5 @@
 import { GameMode } from "@instant-games/core-types";
+import { IDbClient } from "@instant-games/core-db";
 import { IKeyValueStore, ILockManager } from "@instant-games/core-redis";
 
 export interface IWalletPort {
@@ -8,6 +9,7 @@ export interface IWalletPort {
 }
 
 export const DEMO_WALLET = Symbol("DEMO_WALLET");
+export const DB_WALLET = Symbol("DB_WALLET");
 export const WALLET_ROUTER = Symbol("WALLET_ROUTER");
 
 const OPERATOR_USER_DELIMITER = "::";
@@ -67,16 +69,128 @@ export class DemoWalletService implements IWalletPort {
   }
 }
 
-export class WalletRouter {
-  constructor(private readonly demoWallet: IWalletPort, private readonly realWallet?: IWalletPort) {}
+export class DbWalletService implements IWalletPort {
+  private readonly lockTtlMs: number;
 
-  resolve(mode: GameMode): IWalletPort {
-    if (mode === "demo") return this.demoWallet;
-    if (!this.realWallet) {
-      throw new Error("Real-money wallet adapter not configured");
+  constructor(private readonly db: IDbClient, private readonly lock: ILockManager, lockTtlMs = 2000) {
+    this.lockTtlMs = lockTtlMs;
+  }
+
+  async getBalance(userId: string, currency: string, mode: GameMode): Promise<bigint> {
+    const scoped = parseScopedUserId(userId);
+    const row = await this.findBalance(scoped.operatorId, scoped.userId, currency, mode);
+    if (row) {
+      return BigInt(row.balance);
     }
-    return this.realWallet;
+    await this.ensureBalanceRow(scoped.operatorId, scoped.userId, currency, mode);
+    return BigInt(0);
+  }
+
+  async debitIfSufficient(userId: string, amount: bigint, currency: string, mode: GameMode): Promise<void> {
+    const scoped = parseScopedUserId(userId);
+    const lockKey = WALLET_LOCK_KEY(scoped.operatorId, scoped.userId, currency, mode);
+    await this.lock.withLock(lockKey, this.lockTtlMs, async () => {
+      await this.db.transaction(async (tx) => {
+        const row = await this.findOrCreateForUpdate(tx, scoped.operatorId, scoped.userId, currency, mode);
+        const balance = BigInt(row.balance);
+        if (balance < amount) {
+          throw new Error("INSUFFICIENT_FUNDS");
+        }
+        const next = (balance - amount).toString();
+        await tx.query(
+          `UPDATE wallet_balances SET balance = $1, updated_at = NOW() WHERE id = $2`,
+          [next, row.id]
+        );
+      });
+    });
+  }
+
+  async credit(userId: string, amount: bigint, currency: string, mode: GameMode): Promise<void> {
+    const scoped = parseScopedUserId(userId);
+    const lockKey = WALLET_LOCK_KEY(scoped.operatorId, scoped.userId, currency, mode);
+    await this.lock.withLock(lockKey, this.lockTtlMs, async () => {
+      await this.db.transaction(async (tx) => {
+        const row = await this.findOrCreateForUpdate(tx, scoped.operatorId, scoped.userId, currency, mode);
+        const balance = BigInt(row.balance);
+        const next = (balance + amount).toString();
+        await tx.query(
+          `UPDATE wallet_balances SET balance = $1, updated_at = NOW() WHERE id = $2`,
+          [next, row.id]
+        );
+      });
+    });
+  }
+
+  private async findBalance(operatorId: string, userId: string, currency: string, mode: GameMode) {
+    const rows = await this.db.query<WalletBalanceRow>(
+      `SELECT id, operator_id, user_id, currency, mode, balance
+       FROM wallet_balances
+       WHERE operator_id = $1 AND user_id = $2 AND currency = $3 AND mode = $4`,
+      [operatorId, userId, currency, mode]
+    );
+    return rows[0] ?? null;
+  }
+
+  private async ensureBalanceRow(operatorId: string, userId: string, currency: string, mode: GameMode): Promise<void> {
+    await this.db.query(
+      `INSERT INTO wallet_balances (operator_id, user_id, currency, mode, balance)
+       VALUES ($1,$2,$3,$4,0)
+       ON CONFLICT (operator_id, user_id, currency, mode) DO NOTHING`,
+      [operatorId, userId, currency, mode]
+    );
+  }
+
+  private async findOrCreateForUpdate(tx: IDbClient, operatorId: string, userId: string, currency: string, mode: GameMode) {
+    const rows = await tx.query<WalletBalanceRow>(
+      `SELECT id, operator_id, user_id, currency, mode, balance
+       FROM wallet_balances
+       WHERE operator_id = $1 AND user_id = $2 AND currency = $3 AND mode = $4
+       FOR UPDATE`,
+      [operatorId, userId, currency, mode]
+    );
+    if (rows.length) {
+      return rows[0];
+    }
+    const inserted = await tx.query<WalletBalanceRow>(
+      `INSERT INTO wallet_balances (operator_id, user_id, currency, mode, balance)
+       VALUES ($1,$2,$3,$4,0)
+       RETURNING id, operator_id, user_id, currency, mode, balance`,
+      [operatorId, userId, currency, mode]
+    );
+    return inserted[0];
   }
 }
 
-// TODO: Replace demo Redis wallet with a DB-backed wallet implementation for production.
+export interface WalletRouterOptions {
+  allowDemoFallback?: boolean;
+}
+
+export class WalletRouter {
+  constructor(
+    private readonly demoWallet: IWalletPort,
+    private readonly realWallet?: IWalletPort,
+    private readonly options: WalletRouterOptions = {}
+  ) {}
+
+  resolve(mode: GameMode): IWalletPort {
+    if (mode === "demo") {
+      return this.demoWallet;
+    }
+    if (this.realWallet) {
+      return this.realWallet;
+    }
+    if (this.options.allowDemoFallback) {
+      return this.demoWallet;
+    }
+    throw new Error("Real-money wallet adapter not configured");
+  }
+}
+
+interface WalletBalanceRow {
+  id: string;
+  operator_id: string;
+  user_id: string;
+  currency: string;
+  mode: GameMode;
+  balance: string;
+}

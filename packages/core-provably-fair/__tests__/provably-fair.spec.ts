@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ProvablyFairService } from "@instant-games/core-provably-fair";
+import { ProvablyFairService } from "../src";
 
 const service = new ProvablyFairService();
 
@@ -8,6 +8,7 @@ describe("ProvablyFairService", () => {
     const ctx = {
       game: "dice" as const,
       userId: "user1",
+      serverSeedId: "seed-a",
       serverSeed: "server-seed",
       serverSeedHash: service.hashServerSeed("server-seed"),
       clientSeed: "client-seed",
@@ -26,6 +27,7 @@ describe("ProvablyFairService", () => {
     const ctx = {
       game: "dice" as const,
       userId: "user1",
+      serverSeedId: "seed-b",
       serverSeed: "server-seed-2",
       serverSeedHash: service.hashServerSeed("server-seed-2"),
       clientSeed: "client-seed-2",

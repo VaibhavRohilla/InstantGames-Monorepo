@@ -5,6 +5,6 @@
     "declaration": false,
     "composite": false
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "__tests__/**/*.ts"]
 }
 

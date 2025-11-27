@@ -8,5 +8,19 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "start:dev": "ts-node --transpile-only src/main.ts"
+  },
+  "dependencies": {
+    "@instant-games/core-db": "workspace:*",
+    "@instant-games/core-logging": "workspace:*",
+    "@instant-games/core-metrics": "workspace:*",
+    "@instant-games/core-provably-fair": "workspace:*",
+    "@nestjs/common": "^11.1.9",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.9",
+    "@nestjs/platform-express": "^11.1.9",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.3",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
   }
 }
