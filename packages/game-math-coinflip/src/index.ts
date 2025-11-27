@@ -1,17 +1,25 @@
+import { GameMathEvaluationInput, GameMathMaxPayoutInput, GameEvaluationResult } from "@instant-games/core-game-slice";
+
 // NOTE: Stub math implementation for prototyping only; not production-ready.
 export type CoinFlipChoice = "heads" | "tails";
 
-export interface CoinFlipResult {
-  outcome: CoinFlipChoice;
-  win: boolean;
-  payout: bigint;
-}
-
-export class CoinFlipEngine {
-  evaluate(betAmount: bigint, choice: CoinFlipChoice, randomFloat: number): CoinFlipResult {
-    const outcome: CoinFlipChoice = randomFloat < 0.5 ? "heads" : "tails";
+export class CoinFlipMathEngine {
+  evaluate(input: GameMathEvaluationInput): GameEvaluationResult {
+    const choice = ((input.payload["choice"] as CoinFlipChoice) ?? "heads").toLowerCase() as CoinFlipChoice;
+    const outcome: CoinFlipChoice = input.rng() < 0.5 ? "heads" : "tails";
     const win = outcome === choice;
-    const payout = win ? betAmount * BigInt(2) : BigInt(0);
-    return { outcome, win, payout };
+    const payout = win ? input.betAmount * 2n : 0n;
+    return {
+      payout,
+      metadata: {
+        outcome,
+        win,
+        choice,
+      },
+    };
+  }
+
+  estimateMaxPayout(input: GameMathMaxPayoutInput): bigint {
+    return input.betAmount * 2n;
   }
 }

@@ -1,6 +1,15 @@
 import "reflect-metadata";
 import { randomInt } from "crypto";
 import { DiceMathEngine } from "@instant-games/game-math-dice";
+import { GameMode, GameName } from "@instant-games/core-types";
+const SIM_CONTEXT = {
+  operatorId: "sim",
+  userId: "sim",
+  currency: "USD",
+  mode: "demo" as GameMode,
+  game: "dice" as GameName,
+};
+
 
 interface DiceSimOptions {
   rounds: number;
@@ -69,10 +78,16 @@ async function runDiceSim(options: DiceSimOptions) {
 
   for (let i = 0; i < options.rounds; i++) {
     const roll = randomInt(1, 101);
-    const result = engine.evaluate(options.bet, { target: options.target, condition: options.condition }, roll);
+    const rngValue = (roll - 1) / 100;
+    const result = engine.evaluate({
+      ctx: SIM_CONTEXT,
+      betAmount: options.bet,
+      payload: { target: options.target, condition: options.condition },
+      rng: () => rngValue,
+    });
     totalBet += options.bet;
     totalPayout += result.payout;
-    if (result.win) wins += 1;
+    if (result.metadata.win === true) wins += 1;
   }
 
   const rtp = Number(totalPayout * BigInt(10000) / (totalBet === BigInt(0) ? BigInt(1) : totalBet)) / 100;

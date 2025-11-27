@@ -34,6 +34,7 @@
       "@instant-games/core-metrics": ["packages/core-metrics/src"],
       "@instant-games/core-bonus": ["packages/core-bonus/src"],
       "@instant-games/core-tenant": ["packages/core-tenant/src"],
+      "@instant-games/core-game-slice": ["packages/core-game-slice/src"],
       "@instant-games/game-math-roulette": ["packages/game-math-roulette/src"],
       "@instant-games/game-math-mines": ["packages/game-math-mines/src"],
       "@instant-games/game-math-dice": ["packages/game-math-dice/src"],

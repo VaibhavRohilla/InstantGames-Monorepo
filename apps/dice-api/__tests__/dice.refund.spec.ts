@@ -15,9 +15,10 @@ import { IDEMPOTENCY_STORE, RedisIdempotencyStore } from "@instant-games/core-id
 import { LOGGER } from "@instant-games/core-logging";
 import { METRICS } from "@instant-games/core-metrics";
 import { NoopBonusPort, BONUS_PORT } from "@instant-games/core-bonus";
+import { GameBetRunner } from "@instant-games/core-game-slice";
 import { RiskService, RISK_SERVICE } from "@instant-games/core-risk";
 import { DB_CLIENT, IDbClient } from "@instant-games/core-db";
-import { InMemoryLogger, InMemoryStore, NoopLockManager, NoopMetrics, createDbClient } from "./test-helpers";
+import { InMemoryLogger, InMemoryStore, NoopLockManager, NoopMetrics, createDbClient } from "../../test-utils/test-helpers";
 
 const failControl = { next: false };
 
@@ -66,6 +67,7 @@ describe("Dice API refunds", () => {
       imports: [AuthModule],
       controllers: [DiceController],
       providers: [
+        GameBetRunner,
         DiceService,
         { provide: PROVABLY_FAIR_SERVICE, useClass: ProvablyFairService },
         {

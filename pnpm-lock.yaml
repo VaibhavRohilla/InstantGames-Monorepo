@@ -94,9 +94,119 @@ importers:
         specifier: ^5.1.4
         version: 5.1.4(typescript@5.9.3)
 
-  apps/admin-api: {}
+  apps/admin-api:
+    dependencies:
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../../packages/core-db
+      '@instant-games/core-logging':
+        specifier: workspace:*
+        version: link:../../packages/core-logging
+      '@instant-games/core-metrics':
+        specifier: workspace:*
+        version: link:../../packages/core-metrics
+      '@instant-games/core-provably-fair':
+        specifier: workspace:*
+        version: link:../../packages/core-provably-fair
+      '@nestjs/common':
+        specifier: ^11.1.9
+        version: 11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.2
+        version: 4.0.2(@nestjs/common@11.1.9)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/platform-express@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/core@11.1.9)
+      class-transformer:
+        specifier: ^0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: ^0.14.3
+        version: 0.14.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
 
-  apps/coinflip-api: {}
+  apps/coinflip-api:
+    dependencies:
+      '@instant-games/core-auth':
+        specifier: workspace:*
+        version: link:../../packages/core-auth
+      '@instant-games/core-bonus':
+        specifier: workspace:*
+        version: link:../../packages/core-bonus
+      '@instant-games/core-config':
+        specifier: workspace:*
+        version: link:../../packages/core-config
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../../packages/core-db
+      '@instant-games/core-game-history':
+        specifier: workspace:*
+        version: link:../../packages/core-game-history
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../../packages/core-game-slice
+      '@instant-games/core-idempotency':
+        specifier: workspace:*
+        version: link:../../packages/core-idempotency
+      '@instant-games/core-ledger':
+        specifier: workspace:*
+        version: link:../../packages/core-ledger
+      '@instant-games/core-logging':
+        specifier: workspace:*
+        version: link:../../packages/core-logging
+      '@instant-games/core-metrics':
+        specifier: workspace:*
+        version: link:../../packages/core-metrics
+      '@instant-games/core-provably-fair':
+        specifier: workspace:*
+        version: link:../../packages/core-provably-fair
+      '@instant-games/core-redis':
+        specifier: workspace:*
+        version: link:../../packages/core-redis
+      '@instant-games/core-risk':
+        specifier: workspace:*
+        version: link:../../packages/core-risk
+      '@instant-games/core-rng':
+        specifier: workspace:*
+        version: link:../../packages/core-rng
+      '@instant-games/core-wallet':
+        specifier: workspace:*
+        version: link:../../packages/core-wallet
+      '@instant-games/game-math-coinflip':
+        specifier: workspace:*
+        version: link:../../packages/game-math-coinflip
+      '@nestjs/common':
+        specifier: ^11.1.9
+        version: 11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.2
+        version: 4.0.2(@nestjs/common@11.1.9)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/platform-express@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/core@11.1.9)
+      class-transformer:
+        specifier: ^0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: ^0.14.3
+        version: 0.14.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
 
   apps/dice-api:
     dependencies:
@@ -172,15 +282,380 @@ importers:
 
   apps/gateway-api: {}
 
-  apps/hilo-api: {}
+  apps/hilo-api:
+    dependencies:
+      '@instant-games/core-auth':
+        specifier: workspace:*
+        version: link:../../packages/core-auth
+      '@instant-games/core-bonus':
+        specifier: workspace:*
+        version: link:../../packages/core-bonus
+      '@instant-games/core-config':
+        specifier: workspace:*
+        version: link:../../packages/core-config
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../../packages/core-db
+      '@instant-games/core-game-history':
+        specifier: workspace:*
+        version: link:../../packages/core-game-history
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../../packages/core-game-slice
+      '@instant-games/core-idempotency':
+        specifier: workspace:*
+        version: link:../../packages/core-idempotency
+      '@instant-games/core-ledger':
+        specifier: workspace:*
+        version: link:../../packages/core-ledger
+      '@instant-games/core-logging':
+        specifier: workspace:*
+        version: link:../../packages/core-logging
+      '@instant-games/core-metrics':
+        specifier: workspace:*
+        version: link:../../packages/core-metrics
+      '@instant-games/core-provably-fair':
+        specifier: workspace:*
+        version: link:../../packages/core-provably-fair
+      '@instant-games/core-redis':
+        specifier: workspace:*
+        version: link:../../packages/core-redis
+      '@instant-games/core-risk':
+        specifier: workspace:*
+        version: link:../../packages/core-risk
+      '@instant-games/core-rng':
+        specifier: workspace:*
+        version: link:../../packages/core-rng
+      '@instant-games/core-wallet':
+        specifier: workspace:*
+        version: link:../../packages/core-wallet
+      '@instant-games/game-math-hilo':
+        specifier: workspace:*
+        version: link:../../packages/game-math-hilo
+      '@nestjs/common':
+        specifier: ^11.1.9
+        version: 11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.2
+        version: 4.0.2(@nestjs/common@11.1.9)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/platform-express@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/core@11.1.9)
+      class-transformer:
+        specifier: ^0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: ^0.14.3
+        version: 0.14.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
 
-  apps/keno-api: {}
+  apps/keno-api:
+    dependencies:
+      '@instant-games/core-auth':
+        specifier: workspace:*
+        version: link:../../packages/core-auth
+      '@instant-games/core-bonus':
+        specifier: workspace:*
+        version: link:../../packages/core-bonus
+      '@instant-games/core-config':
+        specifier: workspace:*
+        version: link:../../packages/core-config
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../../packages/core-db
+      '@instant-games/core-game-history':
+        specifier: workspace:*
+        version: link:../../packages/core-game-history
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../../packages/core-game-slice
+      '@instant-games/core-idempotency':
+        specifier: workspace:*
+        version: link:../../packages/core-idempotency
+      '@instant-games/core-ledger':
+        specifier: workspace:*
+        version: link:../../packages/core-ledger
+      '@instant-games/core-logging':
+        specifier: workspace:*
+        version: link:../../packages/core-logging
+      '@instant-games/core-metrics':
+        specifier: workspace:*
+        version: link:../../packages/core-metrics
+      '@instant-games/core-provably-fair':
+        specifier: workspace:*
+        version: link:../../packages/core-provably-fair
+      '@instant-games/core-redis':
+        specifier: workspace:*
+        version: link:../../packages/core-redis
+      '@instant-games/core-risk':
+        specifier: workspace:*
+        version: link:../../packages/core-risk
+      '@instant-games/core-rng':
+        specifier: workspace:*
+        version: link:../../packages/core-rng
+      '@instant-games/core-wallet':
+        specifier: workspace:*
+        version: link:../../packages/core-wallet
+      '@instant-games/game-math-keno':
+        specifier: workspace:*
+        version: link:../../packages/game-math-keno
+      '@nestjs/common':
+        specifier: ^11.1.9
+        version: 11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.2
+        version: 4.0.2(@nestjs/common@11.1.9)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/platform-express@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/core@11.1.9)
+      class-transformer:
+        specifier: ^0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: ^0.14.3
+        version: 0.14.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
 
-  apps/mines-api: {}
+  apps/mines-api:
+    dependencies:
+      '@instant-games/core-auth':
+        specifier: workspace:*
+        version: link:../../packages/core-auth
+      '@instant-games/core-bonus':
+        specifier: workspace:*
+        version: link:../../packages/core-bonus
+      '@instant-games/core-config':
+        specifier: workspace:*
+        version: link:../../packages/core-config
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../../packages/core-db
+      '@instant-games/core-game-history':
+        specifier: workspace:*
+        version: link:../../packages/core-game-history
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../../packages/core-game-slice
+      '@instant-games/core-idempotency':
+        specifier: workspace:*
+        version: link:../../packages/core-idempotency
+      '@instant-games/core-ledger':
+        specifier: workspace:*
+        version: link:../../packages/core-ledger
+      '@instant-games/core-logging':
+        specifier: workspace:*
+        version: link:../../packages/core-logging
+      '@instant-games/core-metrics':
+        specifier: workspace:*
+        version: link:../../packages/core-metrics
+      '@instant-games/core-provably-fair':
+        specifier: workspace:*
+        version: link:../../packages/core-provably-fair
+      '@instant-games/core-redis':
+        specifier: workspace:*
+        version: link:../../packages/core-redis
+      '@instant-games/core-risk':
+        specifier: workspace:*
+        version: link:../../packages/core-risk
+      '@instant-games/core-rng':
+        specifier: workspace:*
+        version: link:../../packages/core-rng
+      '@instant-games/core-wallet':
+        specifier: workspace:*
+        version: link:../../packages/core-wallet
+      '@instant-games/game-math-mines':
+        specifier: workspace:*
+        version: link:../../packages/game-math-mines
+      '@nestjs/common':
+        specifier: ^11.1.9
+        version: 11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.2
+        version: 4.0.2(@nestjs/common@11.1.9)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/platform-express@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/core@11.1.9)
+      class-transformer:
+        specifier: ^0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: ^0.14.3
+        version: 0.14.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
 
-  apps/plinko-api: {}
+  apps/plinko-api:
+    dependencies:
+      '@instant-games/core-auth':
+        specifier: workspace:*
+        version: link:../../packages/core-auth
+      '@instant-games/core-bonus':
+        specifier: workspace:*
+        version: link:../../packages/core-bonus
+      '@instant-games/core-config':
+        specifier: workspace:*
+        version: link:../../packages/core-config
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../../packages/core-db
+      '@instant-games/core-game-history':
+        specifier: workspace:*
+        version: link:../../packages/core-game-history
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../../packages/core-game-slice
+      '@instant-games/core-idempotency':
+        specifier: workspace:*
+        version: link:../../packages/core-idempotency
+      '@instant-games/core-ledger':
+        specifier: workspace:*
+        version: link:../../packages/core-ledger
+      '@instant-games/core-logging':
+        specifier: workspace:*
+        version: link:../../packages/core-logging
+      '@instant-games/core-metrics':
+        specifier: workspace:*
+        version: link:../../packages/core-metrics
+      '@instant-games/core-provably-fair':
+        specifier: workspace:*
+        version: link:../../packages/core-provably-fair
+      '@instant-games/core-redis':
+        specifier: workspace:*
+        version: link:../../packages/core-redis
+      '@instant-games/core-risk':
+        specifier: workspace:*
+        version: link:../../packages/core-risk
+      '@instant-games/core-rng':
+        specifier: workspace:*
+        version: link:../../packages/core-rng
+      '@instant-games/core-wallet':
+        specifier: workspace:*
+        version: link:../../packages/core-wallet
+      '@instant-games/game-math-plinko':
+        specifier: workspace:*
+        version: link:../../packages/game-math-plinko
+      '@nestjs/common':
+        specifier: ^11.1.9
+        version: 11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.2
+        version: 4.0.2(@nestjs/common@11.1.9)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/platform-express@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/core@11.1.9)
+      class-transformer:
+        specifier: ^0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: ^0.14.3
+        version: 0.14.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
 
-  apps/roulette-api: {}
+  apps/roulette-api:
+    dependencies:
+      '@instant-games/core-auth':
+        specifier: workspace:*
+        version: link:../../packages/core-auth
+      '@instant-games/core-bonus':
+        specifier: workspace:*
+        version: link:../../packages/core-bonus
+      '@instant-games/core-config':
+        specifier: workspace:*
+        version: link:../../packages/core-config
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../../packages/core-db
+      '@instant-games/core-game-history':
+        specifier: workspace:*
+        version: link:../../packages/core-game-history
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../../packages/core-game-slice
+      '@instant-games/core-idempotency':
+        specifier: workspace:*
+        version: link:../../packages/core-idempotency
+      '@instant-games/core-ledger':
+        specifier: workspace:*
+        version: link:../../packages/core-ledger
+      '@instant-games/core-logging':
+        specifier: workspace:*
+        version: link:../../packages/core-logging
+      '@instant-games/core-metrics':
+        specifier: workspace:*
+        version: link:../../packages/core-metrics
+      '@instant-games/core-provably-fair':
+        specifier: workspace:*
+        version: link:../../packages/core-provably-fair
+      '@instant-games/core-redis':
+        specifier: workspace:*
+        version: link:../../packages/core-redis
+      '@instant-games/core-risk':
+        specifier: workspace:*
+        version: link:../../packages/core-risk
+      '@instant-games/core-rng':
+        specifier: workspace:*
+        version: link:../../packages/core-rng
+      '@instant-games/core-wallet':
+        specifier: workspace:*
+        version: link:../../packages/core-wallet
+      '@instant-games/game-math-roulette':
+        specifier: workspace:*
+        version: link:../../packages/game-math-roulette
+      '@nestjs/common':
+        specifier: ^11.1.9
+        version: 11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.2
+        version: 4.0.2(@nestjs/common@11.1.9)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/platform-express@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/core@11.1.9)
+      class-transformer:
+        specifier: ^0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: ^0.14.3
+        version: 0.14.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
 
   apps/simulator-cli:
     dependencies:
@@ -191,7 +666,80 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
 
-  apps/wheel-api: {}
+  apps/wheel-api:
+    dependencies:
+      '@instant-games/core-auth':
+        specifier: workspace:*
+        version: link:../../packages/core-auth
+      '@instant-games/core-bonus':
+        specifier: workspace:*
+        version: link:../../packages/core-bonus
+      '@instant-games/core-config':
+        specifier: workspace:*
+        version: link:../../packages/core-config
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../../packages/core-db
+      '@instant-games/core-game-history':
+        specifier: workspace:*
+        version: link:../../packages/core-game-history
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../../packages/core-game-slice
+      '@instant-games/core-idempotency':
+        specifier: workspace:*
+        version: link:../../packages/core-idempotency
+      '@instant-games/core-ledger':
+        specifier: workspace:*
+        version: link:../../packages/core-ledger
+      '@instant-games/core-logging':
+        specifier: workspace:*
+        version: link:../../packages/core-logging
+      '@instant-games/core-metrics':
+        specifier: workspace:*
+        version: link:../../packages/core-metrics
+      '@instant-games/core-provably-fair':
+        specifier: workspace:*
+        version: link:../../packages/core-provably-fair
+      '@instant-games/core-redis':
+        specifier: workspace:*
+        version: link:../../packages/core-redis
+      '@instant-games/core-risk':
+        specifier: workspace:*
+        version: link:../../packages/core-risk
+      '@instant-games/core-rng':
+        specifier: workspace:*
+        version: link:../../packages/core-rng
+      '@instant-games/core-wallet':
+        specifier: workspace:*
+        version: link:../../packages/core-wallet
+      '@instant-games/game-math-wheel':
+        specifier: workspace:*
+        version: link:../../packages/game-math-wheel
+      '@nestjs/common':
+        specifier: ^11.1.9
+        version: 11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.2
+        version: 4.0.2(@nestjs/common@11.1.9)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/platform-express@11.1.9)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/platform-express':
+        specifier: ^11.1.9
+        version: 11.1.9(@nestjs/common@11.1.9)(@nestjs/core@11.1.9)
+      class-transformer:
+        specifier: ^0.5.1
+        version: 0.5.1
+      class-validator:
+        specifier: ^0.14.3
+        version: 0.14.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.2
+        version: 7.8.2
 
   packages/core-auth:
     dependencies:
@@ -247,6 +795,54 @@ importers:
         specifier: workspace:*
         version: link:../core-types
 
+  packages/core-game-slice:
+    dependencies:
+      '@instant-games/core-auth':
+        specifier: workspace:*
+        version: link:../core-auth
+      '@instant-games/core-bonus':
+        specifier: workspace:*
+        version: link:../core-bonus
+      '@instant-games/core-config':
+        specifier: workspace:*
+        version: link:../core-config
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../core-db
+      '@instant-games/core-game-history':
+        specifier: workspace:*
+        version: link:../core-game-history
+      '@instant-games/core-idempotency':
+        specifier: workspace:*
+        version: link:../core-idempotency
+      '@instant-games/core-ledger':
+        specifier: workspace:*
+        version: link:../core-ledger
+      '@instant-games/core-logging':
+        specifier: workspace:*
+        version: link:../core-logging
+      '@instant-games/core-metrics':
+        specifier: workspace:*
+        version: link:../core-metrics
+      '@instant-games/core-provably-fair':
+        specifier: workspace:*
+        version: link:../core-provably-fair
+      '@instant-games/core-risk':
+        specifier: workspace:*
+        version: link:../core-risk
+      '@instant-games/core-rng':
+        specifier: workspace:*
+        version: link:../core-rng
+      '@instant-games/core-types':
+        specifier: workspace:*
+        version: link:../core-types
+      '@instant-games/core-wallet':
+        specifier: workspace:*
+        version: link:../core-wallet
+      '@nestjs/common':
+        specifier: ^11.1.9
+        version: 11.1.9(class-transformer@0.5.1)(class-validator@0.14.3)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+
   packages/core-idempotency:
     dependencies:
       '@instant-games/core-redis':
@@ -285,6 +881,9 @@ importers:
 
   packages/core-provably-fair:
     dependencies:
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../core-db
       '@instant-games/core-redis':
         specifier: workspace:*
         version: link:../core-redis
@@ -331,6 +930,9 @@ importers:
 
   packages/core-wallet:
     dependencies:
+      '@instant-games/core-db':
+        specifier: workspace:*
+        version: link:../core-db
       '@instant-games/core-redis':
         specifier: workspace:*
         version: link:../core-redis
@@ -338,21 +940,53 @@ importers:
         specifier: workspace:*
         version: link:../core-types
 
-  packages/game-math-coinflip: {}
+  packages/game-math-coinflip:
+    dependencies:
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../core-game-slice
 
-  packages/game-math-dice: {}
+  packages/game-math-dice:
+    dependencies:
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../core-game-slice
 
-  packages/game-math-hilo: {}
+  packages/game-math-hilo:
+    dependencies:
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../core-game-slice
 
-  packages/game-math-keno: {}
+  packages/game-math-keno:
+    dependencies:
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../core-game-slice
 
-  packages/game-math-mines: {}
+  packages/game-math-mines:
+    dependencies:
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../core-game-slice
 
-  packages/game-math-plinko: {}
+  packages/game-math-plinko:
+    dependencies:
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../core-game-slice
 
-  packages/game-math-roulette: {}
+  packages/game-math-roulette:
+    dependencies:
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../core-game-slice
 
-  packages/game-math-wheel: {}
+  packages/game-math-wheel:
+    dependencies:
+      '@instant-games/core-game-slice':
+        specifier: workspace:*
+        version: link:../core-game-slice
 
 packages:
 

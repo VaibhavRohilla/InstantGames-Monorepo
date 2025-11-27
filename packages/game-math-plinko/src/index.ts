@@ -1,23 +1,22 @@
+import { GameEvaluationResult, GameMathEvaluationInput, GameMathMaxPayoutInput } from "@instant-games/core-game-slice";
+
 // NOTE: Stub math implementation for prototyping only; not production-ready.
-export interface PlinkoConfig {
-  rows: number;
-  payouts: number[]; // per bucket multiplier
-  mathVersion: string;
-}
+export class PlinkoMathEngine {
+  evaluate(input: GameMathEvaluationInput): GameEvaluationResult {
+    const buckets = 5;
+    const bucketIndex = Math.min(buckets - 1, Math.floor(input.rng() * buckets));
+    const multiplier = [0, 0.5, 1, 2, 5][bucketIndex] ?? 0;
+    const payout = BigInt(Math.floor(Number(input.betAmount) * multiplier));
+    return {
+      payout,
+      metadata: {
+        bucketIndex,
+        multiplier,
+      },
+    };
+  }
 
-export interface PlinkoResult {
-  bucketIndex: number;
-  multiplier: number;
-  payout: bigint;
-}
-
-export class PlinkoEngine {
-  constructor(private readonly config: PlinkoConfig) {}
-
-  evaluate(betAmount: bigint, randomFloat: number): PlinkoResult {
-    const bucketIndex = Math.min(this.config.payouts.length - 1, Math.floor(randomFloat * this.config.payouts.length));
-    const multiplier = this.config.payouts[bucketIndex];
-    const payout = BigInt(Math.floor(Number(betAmount) * multiplier));
-    return { bucketIndex, multiplier, payout };
+  estimateMaxPayout(input: GameMathMaxPayoutInput): bigint {
+    return input.betAmount * 5n;
   }
 }

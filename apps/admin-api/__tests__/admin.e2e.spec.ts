@@ -5,7 +5,7 @@ import request from "supertest";
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { AppModule } from "../src/app.module";
 import { DB_CLIENT, IDbClient } from "@instant-games/core-db";
-import { createDbClient } from "../../dice-api/__tests__/test-helpers";
+import { createDbClient } from "apps/test-utils/test-helpers";
 import { randomUUID } from "crypto";
 
 describe("Admin API e2e", () => {

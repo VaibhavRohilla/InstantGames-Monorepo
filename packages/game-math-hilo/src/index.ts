@@ -1,29 +1,27 @@
+import { GameEvaluationResult, GameMathEvaluationInput, GameMathMaxPayoutInput } from "@instant-games/core-game-slice";
+
 // NOTE: Stub math implementation for prototyping only; not production-ready.
 export type HiloChoice = "higher" | "lower";
 
-export interface HiloConfig {
-  deckSize: number;
-  mathVersion: string;
-}
-
-export interface HiloState {
-  currentCard: number;
-  multiplier: number;
-}
-
-export class HiloEngine {
-  constructor(private readonly config: HiloConfig) {}
-
-  evaluate(state: HiloState, choice: HiloChoice, nextCard: number): { win: boolean; payoutMultiplier: number; state: HiloState } {
-    const win = choice === "higher" ? nextCard > state.currentCard : nextCard < state.currentCard;
-    const payoutMultiplier = win ? state.multiplier * 2 : 0;
+export class HiloMathEngine {
+  evaluate(input: GameMathEvaluationInput): GameEvaluationResult {
+    const currentCard = typeof input.payload["currentCard"] === "number" ? Number(input.payload["currentCard"]) : 7;
+    const choice = ((input.payload["choice"] as HiloChoice) ?? "higher").toLowerCase() as HiloChoice;
+    const nextCard = Math.max(1, Math.min(13, Math.floor(input.rng() * 13) + 1));
+    const win = choice === "higher" ? nextCard > currentCard : nextCard < currentCard;
+    const payout = win ? input.betAmount * 2n : 0n;
     return {
-      win,
-      payoutMultiplier,
-      state: {
-        currentCard: nextCard,
-        multiplier: win ? payoutMultiplier : 1,
+      payout,
+      metadata: {
+        currentCard,
+        nextCard,
+        choice,
+        win,
       },
     };
+  }
+
+  estimateMaxPayout(input: GameMathMaxPayoutInput): bigint {
+    return input.betAmount * 2n;
   }
 }

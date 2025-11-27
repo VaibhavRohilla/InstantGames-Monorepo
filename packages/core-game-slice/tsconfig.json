@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../core-auth" },
+    { "path": "../core-bonus" },
+    { "path": "../core-config" },
+    { "path": "../core-db" },
+    { "path": "../core-game-history" },
+    { "path": "../core-idempotency" },
+    { "path": "../core-ledger" },
+    { "path": "../core-logging" },
+    { "path": "../core-metrics" },
+    { "path": "../core-provably-fair" },
+    { "path": "../core-risk" },
+    { "path": "../core-rng" },
+    { "path": "../core-types" },
+    { "path": "../core-wallet" }
+  ]
+}
+

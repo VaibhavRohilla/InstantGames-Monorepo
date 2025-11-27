@@ -1,23 +1,26 @@
+import { GameEvaluationResult, GameMathEvaluationInput, GameMathMaxPayoutInput } from "@instant-games/core-game-slice";
+
 export type DiceCondition = "over" | "under";
 
 export interface DiceMathConfig {
   mathVersion: string;
-  houseEdge: number; // percentage
+  houseEdge: number;
   minTarget: number;
   maxTarget: number;
   maxMultiplier?: number;
 }
 
 export interface DiceBetInput {
-  target: number; // integer 1-99
+  target: number;
   condition: DiceCondition;
 }
 
-export interface DiceEvaluationResult {
+export interface DiceEvaluationMetadata extends Record<string, unknown> {
   rolled: number;
   win: boolean;
   multiplier: number;
-  payout: bigint;
+  target: number;
+  condition: DiceCondition;
 }
 
 const MULTIPLIER_SCALE = 10_000n;
@@ -25,23 +28,38 @@ const MULTIPLIER_SCALE = 10_000n;
 export class DiceMathEngine {
   constructor(private readonly config: DiceMathConfig) {}
 
-  evaluate(betAmount: bigint, bet: DiceBetInput, rolled: number): DiceEvaluationResult {
+  evaluate(input: GameMathEvaluationInput): GameEvaluationResult {
+    const bet = this.toBetInput(input.payload ?? {});
     this.validateBet(bet);
+
     const multiplier = this.computeMultiplier(bet);
+    const rolled = this.roll(input.rng());
     const win = this.didPlayerWin(bet, rolled);
-    const payout = win ? this.applyMultiplier(betAmount, multiplier) : BigInt(0);
+    const payout = win ? this.applyMultiplier(input.betAmount, multiplier) : BigInt(0);
 
     return {
-      rolled,
-      win,
-      multiplier,
       payout,
+      metadata: {
+        rolled,
+        win,
+        multiplier,
+        target: bet.target,
+        condition: bet.condition,
+      } satisfies DiceEvaluationMetadata,
     };
   }
 
-  estimateMaxPayout(betAmount: bigint, bet: DiceBetInput): bigint {
+  estimateMaxPayout(input: GameMathMaxPayoutInput): bigint {
+    const bet = this.toBetInput(input.payload ?? {});
     const multiplier = this.computeMultiplier(bet);
-    return this.applyMultiplier(betAmount, multiplier);
+    return this.applyMultiplier(input.betAmount, multiplier);
+  }
+
+  private toBetInput(payload: Record<string, unknown>): DiceBetInput {
+    return {
+      target: Number(payload["target"]),
+      condition: (payload["condition"] as DiceCondition) ?? "under",
+    };
   }
 
   private validateBet(bet: DiceBetInput) {
@@ -51,10 +69,7 @@ export class DiceMathEngine {
   }
 
   private didPlayerWin(bet: DiceBetInput, rolled: number): boolean {
-    if (bet.condition === "over") {
-      return rolled > bet.target;
-    }
-    return rolled < bet.target;
+    return bet.condition === "over" ? rolled > bet.target : rolled < bet.target;
   }
 
   private computeMultiplier(bet: DiceBetInput): number {
@@ -73,5 +88,9 @@ export class DiceMathEngine {
   private applyMultiplier(amount: bigint, multiplier: number): bigint {
     const scaledMultiplier = BigInt(Math.round(multiplier * Number(MULTIPLIER_SCALE)));
     return (amount * scaledMultiplier) / MULTIPLIER_SCALE;
+  }
+
+  private roll(rand: number): number {
+    return Math.min(100, Math.max(1, Math.floor(rand * 100) + 1));
   }
 }

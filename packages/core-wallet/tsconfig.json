@@ -9,6 +9,7 @@
   },
   "include": ["src"],
   "references": [
+    { "path": "../core-db" },
     { "path": "../core-redis" },
     { "path": "../core-types" }
   ]

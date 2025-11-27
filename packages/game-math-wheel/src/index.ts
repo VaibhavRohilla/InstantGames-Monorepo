@@ -1,32 +1,23 @@
+import { GameEvaluationResult, GameMathEvaluationInput, GameMathMaxPayoutInput } from "@instant-games/core-game-slice";
+
 // NOTE: Stub math implementation for prototyping only; not production-ready.
-export interface WheelSegment {
-  label: string;
-  multiplier: number;
-  weight: number;
-}
+export class WheelMathEngine {
+  evaluate(input: GameMathEvaluationInput): GameEvaluationResult {
+    const segments = ["MISS", "MINI", "MEGA"];
+    const segmentIndex = Math.min(segments.length - 1, Math.floor(input.rng() * segments.length));
+    const segment = segments[segmentIndex];
+    const multiplier = segment === "MEGA" ? 6 : segment === "MINI" ? 2 : 0;
+    const payout = multiplier > 0 ? input.betAmount * BigInt(multiplier) : 0n;
+    return {
+      payout,
+      metadata: {
+        segment,
+        multiplier,
+      },
+    };
+  }
 
-export interface WheelConfig {
-  mathVersion: string;
-  segments: WheelSegment[];
-}
-
-export interface WheelResult {
-  segment: WheelSegment;
-  payout: bigint;
-}
-
-export class WheelEngine {
-  constructor(private readonly config: WheelConfig) {}
-
-  evaluate(betAmount: bigint, randomFloat: number): WheelResult {
-    const totalWeight = this.config.segments.reduce((sum, segment) => sum + segment.weight, 0);
-    let cursor = randomFloat * totalWeight;
-    for (const segment of this.config.segments) {
-      if ((cursor -= segment.weight) <= 0) {
-        return { segment, payout: BigInt(Math.floor(Number(betAmount) * segment.multiplier)) };
-      }
-    }
-    const fallback = this.config.segments[this.config.segments.length - 1];
-    return { segment: fallback, payout: BigInt(Math.floor(Number(betAmount) * fallback.multiplier)) };
+  estimateMaxPayout(input: GameMathMaxPayoutInput): bigint {
+    return input.betAmount * 6n;
   }
 }

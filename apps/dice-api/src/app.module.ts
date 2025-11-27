@@ -18,6 +18,7 @@ import { NoopBonusPort, BONUS_PORT } from "@instant-games/core-bonus";
 import { DiceController } from "./dice.controller";
 import { MetricsController } from "./metrics.controller";
 import { DiceService } from "./dice.service";
+import { GameBetRunner } from "@instant-games/core-game-slice";
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { DiceService } from "./dice.service";
   ],
   controllers: [DiceController, MetricsController],
   providers: [
+    GameBetRunner,
     DiceService,
     {
       provide: APP_INTERCEPTOR,

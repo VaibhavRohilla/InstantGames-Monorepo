@@ -1,32 +1,25 @@
+import { GameEvaluationResult, GameMathEvaluationInput, GameMathMaxPayoutInput } from "@instant-games/core-game-slice";
+
 // NOTE: Stub math implementation for prototyping only; not production-ready.
-export interface KenoConfig {
-  mathVersion: string;
-  maxPicks: number;
-  boardSize: number;
-  payoutTable: Record<number, number>; // hits -> multiplier
-}
+export class KenoMathEngine {
+  evaluate(input: GameMathEvaluationInput): GameEvaluationResult {
+    const picks = Array.isArray(input.payload["picks"])
+      ? (input.payload["picks"] as number[]).slice(0, 10)
+      : [];
+    const hitRoll = input.rng();
+    const hits = hitRoll < 0.15 ? Math.max(1, Math.min(picks.length || 1, 3)) : 0;
+    const payout = hits > 0 ? input.betAmount * BigInt(hits + 1) : 0n;
+    return {
+      payout,
+      metadata: {
+        picks,
+        hits,
+        drawnRoll: hitRoll,
+      },
+    };
+  }
 
-export interface KenoBet {
-  picks: number[];
-}
-
-export interface KenoResult {
-  drawn: number[];
-  hits: number;
-  multiplier: number;
-  payout: bigint;
-}
-
-export class KenoEngine {
-  constructor(private readonly config: KenoConfig) {}
-
-  evaluate(betAmount: bigint, bet: KenoBet, drawnNumbers: number[]): KenoResult {
-    if (bet.picks.length === 0 || bet.picks.length > this.config.maxPicks) {
-      throw new Error("INVALID_PICKS");
-    }
-    const hits = bet.picks.filter((pick) => drawnNumbers.includes(pick)).length;
-    const multiplier = this.config.payoutTable[hits] ?? 0;
-    const payout = BigInt(Math.floor(Number(betAmount) * multiplier));
-    return { drawn: drawnNumbers, hits, multiplier, payout };
+  estimateMaxPayout(input: GameMathMaxPayoutInput): bigint {
+    return input.betAmount * 4n;
   }
 }

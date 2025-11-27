@@ -1,10 +1,28 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "declaration": false,
-    "composite": false
+    "rootDir": ".",
+    "outDir": "dist"
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src", "__tests__"],
+  "references": [
+    { "path": "../../packages/core-auth" },
+    { "path": "../../packages/core-bonus" },
+    { "path": "../../packages/core-config" },
+    { "path": "../../packages/core-db" },
+    { "path": "../../packages/core-game-history" },
+    { "path": "../../packages/core-idempotency" },
+    { "path": "../../packages/core-ledger" },
+    { "path": "../../packages/core-logging" },
+    { "path": "../../packages/core-metrics" },
+    { "path": "../../packages/core-provably-fair" },
+    { "path": "../../packages/core-redis" },
+    { "path": "../../packages/core-risk" },
+    { "path": "../../packages/core-rng" },
+    { "path": "../../packages/core-types" },
+    { "path": "../../packages/core-wallet" },
+    { "path": "../../packages/core-game-slice" },
+    { "path": "../../packages/game-math-plinko" }
+  ]
 }
 
