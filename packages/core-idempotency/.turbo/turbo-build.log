@@ -1,0 +1,4 @@
+
+> @instant-games/core-idempotency@0.1.0 build D:\PersonalProjects\InstantGames-MonoRepo\packages\core-idempotency
+> tsc -p tsconfig.json
+

@@ -1,0 +1,4 @@
+
+> @instant-games/simulator-cli@0.1.0 build D:\PersonalProjects\InstantGames-MonoRepo\apps\simulator-cli
+> tsc -p tsconfig.build.json
+

@@ -1,0 +1,4 @@
+
+> @instant-games/game-math-hilo@0.1.0 build D:\PersonalProjects\InstantGames-MonoRepo\packages\game-math-hilo
+> tsc -p tsconfig.json
+

@@ -1,0 +1,4 @@
+
+> @instant-games/core-tenant@0.1.0 build D:\PersonalProjects\InstantGames-MonoRepo\packages\core-tenant
+> tsc -p tsconfig.json
+

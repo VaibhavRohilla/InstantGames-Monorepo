@@ -1,0 +1,4 @@
+
+> @instant-games/game-math-coinflip@0.1.0 build D:\PersonalProjects\InstantGames-MonoRepo\packages\game-math-coinflip
+> tsc -p tsconfig.json
+

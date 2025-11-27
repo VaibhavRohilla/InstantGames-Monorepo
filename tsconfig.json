@@ -1,0 +1,42 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core-auth" },
+    { "path": "packages/core-bonus" },
+    { "path": "packages/core-config" },
+    { "path": "packages/core-db" },
+    { "path": "packages/core-game-history" },
+    { "path": "packages/core-idempotency" },
+    { "path": "packages/core-ledger" },
+    { "path": "packages/core-logging" },
+    { "path": "packages/core-metrics" },
+    { "path": "packages/core-provably-fair" },
+    { "path": "packages/core-redis" },
+    { "path": "packages/core-risk" },
+    { "path": "packages/core-rng" },
+    { "path": "packages/core-tenant" },
+    { "path": "packages/core-types" },
+    { "path": "packages/core-wallet" },
+    { "path": "packages/game-math-coinflip" },
+    { "path": "packages/game-math-dice" },
+    { "path": "packages/game-math-hilo" },
+    { "path": "packages/game-math-keno" },
+    { "path": "packages/game-math-mines" },
+    { "path": "packages/game-math-plinko" },
+    { "path": "packages/game-math-roulette" },
+    { "path": "packages/game-math-wheel" },
+    { "path": "apps/admin-api" },
+    { "path": "apps/coinflip-api" },
+    { "path": "apps/dice-api" },
+    { "path": "apps/gateway-api" },
+    { "path": "apps/hilo-api" },
+    { "path": "apps/keno-api" },
+    { "path": "apps/mines-api" },
+    { "path": "apps/plinko-api" },
+    { "path": "apps/roulette-api" },
+    { "path": "apps/simulator-cli" },
+    { "path": "apps/wheel-api" }
+  ]
+}
+
+

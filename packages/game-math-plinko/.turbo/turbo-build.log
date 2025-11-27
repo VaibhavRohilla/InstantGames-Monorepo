@@ -1,0 +1,4 @@
+
+> @instant-games/game-math-plinko@0.1.0 build D:\PersonalProjects\InstantGames-MonoRepo\packages\game-math-plinko
+> tsc -p tsconfig.json
+

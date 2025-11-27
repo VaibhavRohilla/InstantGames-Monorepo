@@ -1,0 +1,4 @@
+
+> @instant-games/keno-api@0.1.0 build D:\PersonalProjects\InstantGames-MonoRepo\apps\keno-api
+> tsc -p tsconfig.build.json
+

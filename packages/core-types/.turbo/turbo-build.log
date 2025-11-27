@@ -1,0 +1,4 @@
+
+> @instant-games/core-types@0.1.0 build D:\PersonalProjects\InstantGames-MonoRepo\packages\core-types
+> tsc -p tsconfig.json
+
