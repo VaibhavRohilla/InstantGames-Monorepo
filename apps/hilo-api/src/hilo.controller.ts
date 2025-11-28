@@ -1,8 +1,9 @@
-import { BadRequestException, Body, Controller, Headers, Inject, Post, UseGuards } from "@nestjs/common";
-import { AuthGuard, AuthContext, CurrentUser } from "@instant-games/core-auth";
+import { Body, Controller, Inject, Post, UseGuards } from "@nestjs/common";
+import { AuthGuard, AuthContext, Auth } from "@instant-games/core-auth";
 import { HiloService } from "./hilo.service";
 import { HiloBetDto } from "./dto/hilo-bet.dto";
 import { HiloBetResponse } from "./dto/hilo-response.dto";
+import { IdempotencyKey } from "@instant-games/core-idempotency";
 
 @Controller("hilo")
 @UseGuards(AuthGuard)
@@ -11,13 +12,10 @@ export class HiloController {
 
   @Post("bet")
   placeBet(
-    @CurrentUser() ctx: AuthContext,
+    @Auth() ctx: AuthContext,
     @Body() dto: HiloBetDto,
-    @Headers("x-idempotency-key") idempotencyKey?: string,
+    @IdempotencyKey() idempotencyKey: string,
   ): Promise<HiloBetResponse> {
-    if (!idempotencyKey) {
-      throw new BadRequestException("x-idempotency-key header is required");
-    }
     return this.hiloService.placeBet(ctx, dto, idempotencyKey);
   }
 }

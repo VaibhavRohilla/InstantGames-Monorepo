@@ -1,8 +1,9 @@
-import { BadRequestException, Body, Controller, Headers, Inject, Post, UseGuards } from "@nestjs/common";
-import { AuthGuard, AuthContext, CurrentUser } from "@instant-games/core-auth";
+import { Body, Controller, Inject, Post, UseGuards } from "@nestjs/common";
+import { AuthGuard, AuthContext, Auth } from "@instant-games/core-auth";
 import { WheelService } from "./wheel.service";
 import { WheelBetDto } from "./dto/wheel-bet.dto";
 import { WheelBetResponse } from "./dto/wheel-response.dto";
+import { IdempotencyKey } from "@instant-games/core-idempotency";
 
 @Controller("wheel")
 @UseGuards(AuthGuard)
@@ -11,13 +12,10 @@ export class WheelController {
 
   @Post("bet")
   placeBet(
-    @CurrentUser() ctx: AuthContext,
+    @Auth() ctx: AuthContext,
     @Body() dto: WheelBetDto,
-    @Headers("x-idempotency-key") idempotencyKey?: string,
+    @IdempotencyKey() idempotencyKey: string,
   ): Promise<WheelBetResponse> {
-    if (!idempotencyKey) {
-      throw new BadRequestException("x-idempotency-key header is required");
-    }
     return this.wheelService.placeBet(ctx, dto, idempotencyKey);
   }
 }

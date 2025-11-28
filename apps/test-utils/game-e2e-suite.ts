@@ -3,6 +3,7 @@ import request from "supertest";
 import { WALLET_ROUTER, WalletRouter, scopeWalletUserId } from "@instant-games/core-wallet";
 import { GameName } from "@instant-games/core-types";
 import { createGameTestHarness, seedGameConfig, seedOperator } from "./game-test-harness";
+import { createTestAuthToken } from "./auth-helpers";
 
 export interface GameE2EOptions {
   title: string;
@@ -44,11 +45,15 @@ export function registerGameE2ESuite(options: GameE2EOptions) {
 
     it("places and settles a demo bet", async () => {
       const betBody = options.buildBetBody();
+      const token = createTestAuthToken({
+        userId,
+        operatorId,
+        currency,
+        mode: "demo",
+      });
       const res = await request(app.getHttpServer())
         .post(options.path)
-        .set("x-user-id", userId)
-        .set("x-operator-id", operatorId)
-        .set("x-currency", currency)
+        .set("Authorization", `Bearer ${token}`)
         .set("x-idempotency-key", `${options.game}-bet-1`)
         .send(betBody)
         .expect(201);
@@ -73,11 +78,15 @@ export function registerGameE2ESuite(options: GameE2EOptions) {
       ]);
       await kvStore.del(`config:${operatorId}:${options.game}:${currency}:demo`);
 
+      const token = createTestAuthToken({
+        userId,
+        operatorId,
+        currency,
+        mode: "demo",
+      });
       await request(app.getHttpServer())
         .post(options.path)
-        .set("x-user-id", userId)
-        .set("x-operator-id", operatorId)
-        .set("x-currency", currency)
+        .set("Authorization", `Bearer ${token}`)
         .set("x-idempotency-key", `${options.game}-mode`)
         .send(options.buildBetBody())
         .expect(403);
@@ -93,21 +102,23 @@ export function registerGameE2ESuite(options: GameE2EOptions) {
     it("caches idempotent requests", async () => {
       const betBody = options.buildBetBody();
       const key = `${options.game}-idem`;
+      const token = createTestAuthToken({
+        userId,
+        operatorId,
+        currency,
+        mode: "demo",
+      });
 
       const first = await request(app.getHttpServer())
         .post(options.path)
-        .set("x-user-id", userId)
-        .set("x-operator-id", operatorId)
-        .set("x-currency", currency)
+        .set("Authorization", `Bearer ${token}`)
         .set("x-idempotency-key", key)
         .send(betBody)
         .expect(201);
 
       const second = await request(app.getHttpServer())
         .post(options.path)
-        .set("x-user-id", userId)
-        .set("x-operator-id", operatorId)
-        .set("x-currency", currency)
+        .set("Authorization", `Bearer ${token}`)
         .set("x-idempotency-key", key)
         .send(betBody)
         .expect(201);
@@ -123,11 +134,15 @@ export function registerGameE2ESuite(options: GameE2EOptions) {
       await kvStore.del(`config:${operatorId}:${options.game}:${currency}:demo`);
 
       const body = { ...options.buildBetBody(), betAmount: "10" };
+      const token = createTestAuthToken({
+        userId,
+        operatorId,
+        currency,
+        mode: "demo",
+      });
       await request(app.getHttpServer())
         .post(options.path)
-        .set("x-user-id", userId)
-        .set("x-operator-id", operatorId)
-        .set("x-currency", currency)
+        .set("Authorization", `Bearer ${token}`)
         .set("x-idempotency-key", `${options.game}-risk`)
         .send(body)
         .expect(400);

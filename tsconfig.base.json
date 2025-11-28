@@ -20,6 +20,7 @@
       "@instant-games/*": ["packages/*/src"],
       "@instant-games/core-types": ["packages/core-types/src"],
       "@instant-games/core-auth": ["packages/core-auth/src"],
+      "@instant-games/core-auth/test-utils": ["packages/core-auth/src/test-utils"],
       "@instant-games/core-config": ["packages/core-config/src"],
       "@instant-games/core-rng": ["packages/core-rng/src"],
       "@instant-games/core-provably-fair": ["packages/core-provably-fair/src"],

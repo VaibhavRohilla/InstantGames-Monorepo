@@ -1,0 +1,31 @@
+{
+  "name": "@instant-games/game-core",
+  "version": "0.1.0",
+  "private": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@instant-games/core-auth": "workspace:*",
+    "@instant-games/core-bonus": "workspace:*",
+    "@instant-games/core-config": "workspace:*",
+    "@instant-games/core-db": "workspace:*",
+    "@instant-games/core-game-history": "workspace:*",
+    "@instant-games/core-game-slice": "workspace:*",
+    "@instant-games/core-idempotency": "workspace:*",
+    "@instant-games/core-ledger": "workspace:*",
+    "@instant-games/core-logging": "workspace:*",
+    "@instant-games/core-metrics": "workspace:*",
+    "@instant-games/core-provably-fair": "workspace:*",
+    "@instant-games/core-redis": "workspace:*",
+    "@instant-games/core-risk": "workspace:*",
+    "@instant-games/core-rng": "workspace:*",
+    "@instant-games/core-wallet": "workspace:*",
+    "@nestjs/common": "^11.1.9",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.1.9"
+  }
+}
+

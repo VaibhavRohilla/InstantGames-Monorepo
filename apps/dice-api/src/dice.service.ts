@@ -22,6 +22,8 @@ const GAME: GameName = "dice";
 
 @Injectable()
 export class DiceService {
+  private readonly engineCache = new Map<string, DiceMathEngine>();
+
   constructor(
     @Inject(GAME_CONFIG_SERVICE) private readonly configService: IGameConfigService,
     @Inject(RNG_SERVICE) private readonly rng: IRngService,
@@ -40,7 +42,7 @@ export class DiceService {
     const betAmount = BigInt(dto.betAmount);
     const config = await this.configService.getConfig({ ctx, game: GAME });
     const mathConfig = this.buildMathConfig(config.extra ?? {}, config.mathVersion);
-    const engine = new DiceMathEngine(mathConfig);
+    const engine = this.getMathEngine(mathConfig);
     const betCtx: GameBetContext = { ...ctx, game: GAME };
 
     const result = await this.gameBetRunner.run({
@@ -79,6 +81,16 @@ export class DiceService {
       maxTarget: typeof mathExtra.maxTarget === "number" ? mathExtra.maxTarget : 98,
       maxMultiplier: typeof mathExtra.maxMultiplier === "number" ? mathExtra.maxMultiplier : undefined,
     };
+  }
+
+  private getMathEngine(config: DiceMathConfig): DiceMathEngine {
+    const cacheKey = JSON.stringify(config);
+    let engine = this.engineCache.get(cacheKey);
+    if (!engine) {
+      engine = new DiceMathEngine(config);
+      this.engineCache.set(cacheKey, engine);
+    }
+    return engine;
   }
 
   private toResponse(dto: DiceBetDto, result: GameBetRunnerResult): DiceBetResponse {

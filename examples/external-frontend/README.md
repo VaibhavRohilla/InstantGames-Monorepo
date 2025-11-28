@@ -111,8 +111,7 @@ You should see:
 ```bash
 curl -X POST http://localhost:3000/api/v1/games/dice/bet \
   -H "Content-Type: application/json" \
-  -H "x-user-id: test-user" \
-  -H "x-operator-id: test-operator" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
   -H "x-idempotency-key: test-123" \
   -d '{
     "bet": 1000,
@@ -150,6 +149,38 @@ Gateway proxies to:
 ```
 POST http://localhost:3001/dice/bet
 ```
+
+### 4. Provide a JWT via query string
+
+Open the gateway route with `?session=<JWT_TOKEN>`:
+
+```
+http://localhost:3000/games/dice?session=<JWT_TOKEN>
+```
+
+If you open the external frontend directly (e.g., `http://localhost:8080/dice-game/index.html`), append the same query string:
+
+```
+http://localhost:8080/dice-game/index.html?session=<JWT_TOKEN>
+```
+
+Tokens can be generated using the snippet in [docs/GETTING_STARTED.md](../../docs/GETTING_STARTED.md#authentication-jwt-for-demo--production).
+
+### 4. JWT Token Injection
+
+Gateway does **not** issue tokens; you must supply one to the iframe. During development you can run:
+
+```bash
+DEV_TOKEN=$(node -e "const jwt=require('jsonwebtoken');console.log(jwt.sign({sub:'demo-user',operatorId:'demo-op',currency:'USD',mode:'demo'}, 'dev-super-secret-key'));")
+```
+
+Then open the gateway route with the token in the query string:
+
+```
+http://localhost:3000/games/dice?session=${DEV_TOKEN}
+```
+
+If you load the external frontend directly, append the same query param (`?session=${DEV_TOKEN}`).
 
 ## Features Demonstrated
 
@@ -206,7 +237,7 @@ ROULETTE_FRONTEND_URL=http://localhost:8080/roulette-game/index.html
 
 - Verify dice-api backend is running on port 3001
 - Check gateway logs for proxy errors
-- Verify headers are being forwarded (x-user-id, x-operator-id, x-idempotency-key)
+- Ensure requests include `Authorization: Bearer <token>` and a unique `x-idempotency-key`
 
 ### Frontend Not Loading
 

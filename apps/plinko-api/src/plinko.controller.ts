@@ -1,8 +1,9 @@
-import { BadRequestException, Body, Controller, Headers, Inject, Post, UseGuards } from "@nestjs/common";
-import { AuthGuard, AuthContext, CurrentUser } from "@instant-games/core-auth";
+import { Body, Controller, Inject, Post, UseGuards } from "@nestjs/common";
+import { AuthGuard, AuthContext, Auth } from "@instant-games/core-auth";
 import { PlinkoService } from "./plinko.service";
 import { PlinkoBetDto } from "./dto/plinko-bet.dto";
 import { PlinkoBetResponse } from "./dto/plinko-response.dto";
+import { IdempotencyKey } from "@instant-games/core-idempotency";
 
 @Controller("plinko")
 @UseGuards(AuthGuard)
@@ -11,13 +12,10 @@ export class PlinkoController {
 
   @Post("bet")
   placeBet(
-    @CurrentUser() ctx: AuthContext,
+    @Auth() ctx: AuthContext,
     @Body() dto: PlinkoBetDto,
-    @Headers("x-idempotency-key") idempotencyKey?: string,
+    @IdempotencyKey() idempotencyKey: string,
   ): Promise<PlinkoBetResponse> {
-    if (!idempotencyKey) {
-      throw new BadRequestException("x-idempotency-key header is required");
-    }
     return this.plinkoService.placeBet(ctx, dto, idempotencyKey);
   }
 }

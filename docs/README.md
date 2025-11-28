@@ -29,6 +29,14 @@ Welcome to the Instant Games Backend documentation. This index helps you find wh
   - Wallet production readiness
   - RNG certification
 
+## 🏗️ Architecture
+
+- **[RGS Architecture Analysis](./RGS_ARCHITECTURE_ANALYSIS.md)** - Expert analysis of RGS setup
+  - World-class RGS assessment
+  - Architecture strengths and gaps
+  - Comparison to industry leaders
+  - Roadmap to world-class status
+
 ## 📖 Reference
 
 - **[Changing RTP](./REFERENCE.md#changing-rtp)** - How to adjust game RTP
@@ -51,7 +59,8 @@ docs/
 ├── GATEWAY.md                         # Gateway API complete guide
 ├── SIMULATOR.md                       # Simulator CLI guide
 ├── PRODUCTION.md                      # Production deployment
-└── REFERENCE.md                       # Quick reference guide
+├── REFERENCE.md                       # Quick reference guide
+└── RGS_ARCHITECTURE_ANALYSIS.md       # Expert RGS architecture analysis
 ```
 
 ---
@@ -71,6 +80,9 @@ docs/
 
 **...deploy to production?**
 → [Production Guide](./PRODUCTION.md)
+
+**...understand our RGS architecture?**
+→ [RGS Architecture Analysis](./RGS_ARCHITECTURE_ANALYSIS.md)
 
 **...see all game ports?**
 → [Reference Guide](./REFERENCE.md#game-ports)

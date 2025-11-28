@@ -12,6 +12,7 @@
     "@instant-games/core-bonus": "workspace:*",
     "@instant-games/core-config": "workspace:*",
     "@instant-games/core-db": "workspace:*",
+    "@instant-games/core-errors": "workspace:*",
     "@instant-games/core-game-history": "workspace:*",
     "@instant-games/core-idempotency": "workspace:*",
     "@instant-games/core-ledger": "workspace:*",

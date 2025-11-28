@@ -1,8 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "declaration": true,
-    "rootDir": "."
+    "declaration": true
   },
   "exclude": ["**/*.spec.ts", "**/*.test.ts"],
   "references": [
@@ -21,6 +20,8 @@
     { "path": "../../packages/core-rng" },
     { "path": "../../packages/core-types" },
     { "path": "../../packages/core-wallet" },
+    { "path": "../../packages/core-game-slice" },
+    { "path": "../../packages/game-core" },
     { "path": "../../packages/game-math-dice" }
   ]
 }

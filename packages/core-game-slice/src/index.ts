@@ -14,6 +14,7 @@ import { IRiskService, RiskViolationError } from "@instant-games/core-risk";
 import { IRngService } from "@instant-games/core-rng";
 import { WalletRouter, scopeWalletUserId } from "@instant-games/core-wallet";
 import { IBonusPort } from "@instant-games/core-bonus";
+import { RgsErrorCode, rgsErrorPayload } from "@instant-games/core-errors";
 
 export interface GameBetContext extends AuthContext {
   game: GameName;
@@ -86,6 +87,13 @@ export interface GameBetRunnerParams {
   preloadedConfig?: GameConfig;
 }
 
+const RISK_ERROR_CODE_MAP: Record<string, RgsErrorCode> = {
+  BET_UNDER_MIN_LIMIT: RgsErrorCode.BET_UNDER_MIN_LIMIT,
+  BET_OVER_MAX_LIMIT: RgsErrorCode.BET_OVER_MAX_LIMIT,
+  PAYOUT_OVER_LIMIT: RgsErrorCode.PAYOUT_OVER_LIMIT,
+  BET_RATE_LIMIT_EXCEEDED: RgsErrorCode.LIMIT_VIOLATION,
+};
+
 @Injectable()
 export class GameBetRunner {
   async run(params: GameBetRunnerParams): Promise<GameBetRunnerResult> {
@@ -145,10 +153,14 @@ export class GameBetRunner {
 
     const config = preloadedConfig ?? (await configService.getConfig({ ctx, game: ctx.game }));
     if (ctx.mode === "demo" && !config.demoEnabled) {
-      throw new ForbiddenException("MODE_DISABLED");
+      throw new ForbiddenException(
+        rgsErrorPayload(RgsErrorCode.MODE_DISABLED, "Demo mode is disabled for this operator and currency")
+      );
     }
     if (ctx.mode === "real" && !config.realEnabled) {
-      throw new ForbiddenException("MODE_DISABLED");
+      throw new ForbiddenException(
+        rgsErrorPayload(RgsErrorCode.MODE_DISABLED, "Real-money mode is disabled for this operator and currency")
+      );
     }
 
     const potentialPayout =
@@ -157,7 +169,8 @@ export class GameBetRunner {
       await riskService.validateBet({ ctx, game: ctx.game, betAmount, potentialPayout });
     } catch (err) {
       if (err instanceof RiskViolationError) {
-        throw new BadRequestException(err.message);
+        const code = RISK_ERROR_CODE_MAP[err.message] ?? RgsErrorCode.LIMIT_VIOLATION;
+        throw new BadRequestException(rgsErrorPayload(code, err.message));
       }
       throw err;
     }

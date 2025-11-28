@@ -41,7 +41,8 @@ export class FrontendService {
       gameName: "{{GAME_NAME}}",
       apiBaseUrl: "{{API_BASE_URL}}",
       backendUrl: "{{BACKEND_URL}}",
-      frontendUrl: "{{FRONTEND_URL}}"
+      frontendUrl: "{{FRONTEND_URL}}",
+      jwtToken: "{{JWT_TOKEN}}"
     };
   </script>
 </head>
@@ -57,7 +58,7 @@ export class FrontendService {
 </html>`;
   }
 
-  getGameHtml(gameId: string): string {
+  getGameHtml(gameId: string, jwtToken?: string): string {
     const game = this.gameRegistry.getGame(gameId);
 
     if (!game) {
@@ -75,6 +76,7 @@ export class FrontendService {
     html = html.replace(/{{API_BASE_URL}}/g, game.apiBaseUrl);
     html = html.replace(/{{BACKEND_URL}}/g, game.backendUrl);
     html = html.replace(/{{FRONTEND_URL}}/g, game.frontendUrl);
+    html = html.replace(/{{JWT_TOKEN}}/g, jwtToken ?? "");
 
     return html;
   }

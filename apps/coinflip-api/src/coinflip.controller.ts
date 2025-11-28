@@ -1,8 +1,9 @@
-import { BadRequestException, Body, Controller, Headers, Inject, Post, UseGuards } from "@nestjs/common";
-import { AuthGuard, AuthContext, CurrentUser } from "@instant-games/core-auth";
+import { Body, Controller, Inject, Post, UseGuards } from "@nestjs/common";
+import { AuthGuard, AuthContext, Auth } from "@instant-games/core-auth";
 import { CoinflipService } from "./coinflip.service";
 import { CoinflipBetDto } from "./dto/coinflip-bet.dto";
 import { CoinflipBetResponse } from "./dto/coinflip-response.dto";
+import { IdempotencyKey } from "@instant-games/core-idempotency";
 
 @Controller("coinflip")
 @UseGuards(AuthGuard)
@@ -11,13 +12,10 @@ export class CoinflipController {
 
   @Post("bet")
   placeBet(
-    @CurrentUser() ctx: AuthContext,
+    @Auth() ctx: AuthContext,
     @Body() dto: CoinflipBetDto,
-    @Headers("x-idempotency-key") idempotencyKey?: string,
+    @IdempotencyKey() idempotencyKey: string,
   ): Promise<CoinflipBetResponse> {
-    if (!idempotencyKey) {
-      throw new BadRequestException("x-idempotency-key header is required");
-    }
     return this.coinflipService.placeBet(ctx, dto, idempotencyKey);
   }
 }

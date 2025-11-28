@@ -76,6 +76,14 @@ GATEWAY_PORT=3000                            # Default: 3000
 # Wallet
 WALLET_IMPL=demo                             # Options: "demo" or "db"
 
+# Authentication
+AUTH_JWT_ALGO=HS256                          # "HS256" (dev) or "RS256" (prod)
+AUTH_JWT_SECRET=dev-super-secret-key         # Required if using HS256
+# For RS256 deployments:
+# AUTH_JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----
+AUTH_JWT_ISSUER=https://operator.example.com # Optional but recommended
+AUTH_JWT_AUDIENCE=instant-games              # Optional but recommended
+
 # Logging
 LOG_LEVEL=info                               # Default: info
 METRICS_DISABLED=false                       # Default: false
@@ -154,14 +162,28 @@ pnpm --filter @instant-games/simulator-cli start:dev -- dice --rounds 1000
 # Health check
 curl http://localhost:3001/dice/health
 
-# Place bet
+# Generate a dev token (requires AUTH_JWT_SECRET to be set)
+DEV_TOKEN=$(node -e "const jwt=require('jsonwebtoken');console.log(jwt.sign({
+  sub:'user123',operatorId:'operator1',currency:'USD',mode:'demo'
+}, process.env.AUTH_JWT_SECRET || 'dev-super-secret-key',{algorithm:'HS256',expiresIn:'1h'}));")
+
+# Place bet using JWT auth
 curl -X POST http://localhost:3001/dice/bet \
   -H "Content-Type: application/json" \
-  -H "x-user-id: user123" \
-  -H "x-operator-id: operator1" \
+  -H "Authorization: Bearer $DEV_TOKEN" \
   -H "x-idempotency-key: test-123" \
   -d '{"bet": 1000, "target": 50, "condition": "under"}'
 ```
+
+| JWT Claim   | Description              | Required |
+|-------------|--------------------------|----------|
+| `sub`       | User ID                  | ✅ |
+| `operatorId`| Operator / tenant ID     | ✅ |
+| `currency`  | ISO currency code        | ✅ |
+| `mode`      | `"demo"` or `"real"`     | ✅ |
+| `brandId`   | Brand identifier         | optional |
+| `country`   | ISO country code         | optional |
+| `isTestUser`| Boolean flag             | optional |
 
 ### Database
 

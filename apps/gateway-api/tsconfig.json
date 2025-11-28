@@ -1,11 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": "..",
+    "rootDir": "../..",
     "outDir": "dist"
   },
   "include": ["src"],
   "references": [
+    { "path": "../../packages/core-auth" },
     { "path": "../../packages/core-logging" },
     { "path": "../../packages/core-metrics" }
   ]

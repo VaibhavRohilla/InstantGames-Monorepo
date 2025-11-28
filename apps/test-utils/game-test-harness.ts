@@ -15,7 +15,13 @@ import { LOGGER } from "@instant-games/core-logging";
 import { METRICS } from "@instant-games/core-metrics";
 import { IDbClient, DB_CLIENT } from "@instant-games/core-db";
 import { GameBetRunner } from "@instant-games/core-game-slice";
-import { InMemoryLogger, InMemoryStore, NoopLockManager, NoopMetrics, createDbClient } from "./test-helpers";
+import { InMemoryLogger, InMemoryStore, NoopLockManager, NoopMetrics, createDbClient, TEST_JWT_SECRET } from "./test-helpers";
+
+// Set JWT secret for tests if not already set
+if (!process.env.AUTH_JWT_SECRET) {
+  process.env.AUTH_JWT_SECRET = TEST_JWT_SECRET;
+  process.env.AUTH_JWT_ALGO = "HS256";
+}
 
 export interface GameTestHarness {
   app: INestApplication;

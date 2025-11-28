@@ -3,16 +3,17 @@ import { Type } from "class-transformer";
 import { IsInt, IsOptional, IsString, Min } from "class-validator";
 import { AdminAuthGuard } from "../auth/admin-auth.guard";
 import { IPfRotationService, PF_ROTATION_SERVICE, PfSeedHistory } from "@instant-games/core-provably-fair";
+import { GameMode, GameName } from "@instant-games/core-types";
 
 class PfSeedsQueryDto {
   @IsString()
   operatorId!: string;
 
   @IsString()
-  game!: string;
+  game!: GameName;
 
   @IsString()
-  mode!: string;
+  mode!: GameMode;
 
   @IsOptional()
   @Type(() => Number)
@@ -26,10 +27,10 @@ class PfRotateDto {
   operatorId!: string;
 
   @IsString()
-  game!: string;
+  game!: GameName;
 
   @IsString()
-  mode!: string;
+  mode!: GameMode;
 }
 
 @Controller("admin/pf")
@@ -41,8 +42,8 @@ export class PfController {
   listSeeds(@Query() query: PfSeedsQueryDto): Promise<PfSeedHistory[]> {
     return this.rotationService.getSeedHistory({
       operatorId: query.operatorId,
-      game: query.game as any,
-      mode: query.mode as any,
+      game: query.game,
+      mode: query.mode,
       limit: query.limit ?? 20,
     });
   }
@@ -51,8 +52,8 @@ export class PfController {
   async rotate(@Body() dto: PfRotateDto) {
     const seed = await this.rotationService.rotateServerSeed({
       operatorId: dto.operatorId,
-      game: dto.game as any,
-      mode: dto.mode as any,
+      game: dto.game,
+      mode: dto.mode,
     });
     return {
       id: seed.id,

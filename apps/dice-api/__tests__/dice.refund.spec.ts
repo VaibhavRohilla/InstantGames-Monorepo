@@ -19,6 +19,7 @@ import { GameBetRunner } from "@instant-games/core-game-slice";
 import { RiskService, RISK_SERVICE } from "@instant-games/core-risk";
 import { DB_CLIENT, IDbClient } from "@instant-games/core-db";
 import { InMemoryLogger, InMemoryStore, NoopLockManager, NoopMetrics, createDbClient } from "../../test-utils/test-helpers";
+import { createTestAuthToken } from "../../test-utils/auth-helpers";
 
 const failControl = { next: false };
 
@@ -48,6 +49,11 @@ describe("Dice API refunds", () => {
   let dbClient: IDbClient;
   let kvStore: InMemoryStore;
   let triggerSettlementFailure: () => void;
+  const operatorId = "op-refund";
+  const currency = "USD";
+
+  const getAuthHeader = (userId: string, mode: "demo" | "real" = "demo") =>
+    `Bearer ${createTestAuthToken({ userId, operatorId, currency, mode })}`;
 
   beforeAll(async () => {
     const moduleExports = (await import("@instant-games/core-game-history")) as Record<string, unknown>;
@@ -56,11 +62,11 @@ describe("Dice API refunds", () => {
     dbClient = await createDbClient();
     kvStore = new InMemoryStore();
 
-    await dbClient.query(`INSERT INTO operators (id, name) VALUES ($1,$2)`, ["op-refund", "Refund Operator"]);
+    await dbClient.query(`INSERT INTO operators (id, name) VALUES ($1,$2)`, [operatorId, "Refund Operator"]);
     await dbClient.query(
       `INSERT INTO game_configs (operator_id, game, currency, mode, min_bet, max_bet, max_payout_per_round, math_version, extra)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      ["op-refund", "dice", "USD", "real", "100", "100000", "1000000", "v1", JSON.stringify({})]
+      [operatorId, "dice", currency, "real", "100", "100000", "1000000", "v1", JSON.stringify({})]
     );
 
     const moduleRef = await Test.createTestingModule({
@@ -119,7 +125,7 @@ describe("Dice API refunds", () => {
     await app.init();
 
     const walletRouter = app.get<WalletRouter>(WALLET_ROUTER);
-    await walletRouter.resolve("real").credit(scopeWalletUserId("op-refund", "user-refund"), BigInt(1000), "USD", "real");
+    await walletRouter.resolve("real").credit(scopeWalletUserId(operatorId, "user-refund"), BigInt(1000), currency, "real");
   });
 
   afterAll(async () => {
@@ -133,29 +139,26 @@ describe("Dice API refunds", () => {
 
     await request(app.getHttpServer())
       .post("/dice/bet")
-      .set("x-user-id", "user-refund")
-      .set("x-operator-id", "op-refund")
-      .set("x-currency", "USD")
-      .set("x-game-mode", "real")
+      .set("Authorization", getAuthHeader("user-refund", "real"))
       .set("x-idempotency-key", "idem-refund-1")
       .send({ betAmount: "400", target: 55, condition: "under" })
       .expect(500);
 
     const [walletRow] = await dbClient.query(
       `SELECT balance FROM wallet_balances WHERE operator_id = $1 AND user_id = $2 AND currency = $3 AND mode = $4`,
-      ["op-refund", "user-refund", "USD", "real"]
+      [operatorId, "user-refund", currency, "real"]
     );
     expect(BigInt(walletRow.balance)).toBe(BigInt(1000));
 
     const refundTx = await dbClient.query(
       `SELECT * FROM wallet_transactions WHERE operator_id = $1 AND user_id = $2 AND type = 'REFUND' ORDER BY created_at DESC LIMIT 1`,
-      ["op-refund", "user-refund"]
+      [operatorId, "user-refund"]
     );
     expect(refundTx).toHaveLength(1);
 
     const cancelledRound = await dbClient.query(
       `SELECT status FROM game_rounds WHERE operator_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1`,
-      ["op-refund", "user-refund"]
+      [operatorId, "user-refund"]
     );
     expect(cancelledRound[0]?.status).toBe("CANCELLED");
   });

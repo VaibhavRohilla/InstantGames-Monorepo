@@ -22,6 +22,8 @@ const GAME: GameName = "plinko";
 
 @Injectable()
 export class PlinkoService {
+  private readonly engine = new PlinkoMathEngine();
+
   constructor(
     @Inject(GAME_CONFIG_SERVICE) private readonly configService: IGameConfigService,
     @Inject(RNG_SERVICE) private readonly rng: IRngService,
@@ -39,8 +41,6 @@ export class PlinkoService {
   async placeBet(ctx: AuthContext, dto: PlinkoBetDto, idempotencyKey: string): Promise<PlinkoBetResponse> {
     const betAmount = BigInt(dto.betAmount);
     const betCtx: GameBetContext = { ...ctx, game: GAME };
-    const engine = new PlinkoMathEngine();
-
     const result = await this.gameBetRunner.run({
       ctx: betCtx,
       request: {
@@ -49,7 +49,7 @@ export class PlinkoService {
         clientSeed: dto.clientSeed,
       },
       idempotencyKey,
-      mathEngine: engine,
+      mathEngine: this.engine,
       configService: this.configService,
       riskService: this.riskService,
       provablyFairStore: this.provablyFairStore,

@@ -75,6 +75,8 @@ Try placing a bet:
 4. Click "Place Bet"
 5. See result! 🎉
 
+> Tip: open `http://localhost:3000/games/dice?session=<JWT_TOKEN>` so the iframe receives the token via query string.
+
 ### Via Command Line:
 
 ```bash
@@ -87,11 +89,12 @@ curl http://localhost:3000/api/v1/games/dice/health
 # Place a test bet
 curl -X POST http://localhost:3000/api/v1/games/dice/bet \
   -H "Content-Type: application/json" \
-  -H "x-user-id: test-user" \
-  -H "x-operator-id: test-operator" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
   -H "x-idempotency-key: test-123" \
   -d '{"bet": 1000, "target": 50, "condition": "under"}'
 ```
+
+> 💡 Generate a dev token the same way as in [docs/GETTING_STARTED.md](../../docs/GETTING_STARTED.md#authentication-jwt-for-demo--production) and append it as `?session=<token>` when opening the gateway route.
 
 ## 🎯 What's Happening?
 
@@ -116,7 +119,7 @@ curl -X POST http://localhost:3000/api/v1/games/dice/bet \
 
 - ✅ Verify dice-api is running on port 3001
 - ✅ Check gateway logs for proxy errors
-- ✅ Ensure all required headers are present in requests
+- ✅ Ensure every request includes `Authorization: Bearer <token>` and a unique `x-idempotency-key`
 
 ### Port already in use
 

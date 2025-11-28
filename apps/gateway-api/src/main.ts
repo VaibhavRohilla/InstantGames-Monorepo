@@ -16,7 +16,7 @@ export async function bootstrap() {
     origin: process.env.FRONTEND_ORIGIN || "*",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-user-id", "x-operator-id", "x-idempotency-key", "x-correlation-id"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-idempotency-key", "x-correlation-id"],
   });
 
   // Serve static files for game frontends

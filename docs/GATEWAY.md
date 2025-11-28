@@ -114,22 +114,31 @@ ROULETTE_FRONTEND_URL=https://s3.amazonaws.com/bucket/roulette/index.html
 3. External frontend accesses config from parent window
 4. API calls go through gateway proxy
 
+> 🔐 The JWT is not auto-generated. Append `?session=<JWT_TOKEN>` when opening `GET /games/:gameId` (or supply `window.GAME_CONFIG.jwtToken` if you control the wrapper) so the iframe can attach `Authorization: Bearer <token>` on every request.
+
 **Frontend Integration:**
 
 ```javascript
-// Get config from parent window
-const config = window.parent?.GAME_CONFIG || window.GAME_CONFIG;
+// Preferred: read ?session=<token> from the iframe URL
+const params = new URLSearchParams(window.location.search);
+const tokenFromUrl = params.get("session");
 
-// Use for API calls
+// Optional fallback (if iframe is same-origin with gateway)
+const config = window.parent?.GAME_CONFIG || window.GAME_CONFIG;
+const token = tokenFromUrl || config?.jwtToken;
+
+if (!token) {
+  throw new Error("Missing JWT token. Append ?session=<token> when loading this page.");
+}
+
 fetch(`${config.apiBaseUrl}/bet`, {
-  method: 'POST',
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json',
-    'x-user-id': 'user123',
-    'x-operator-id': 'operator1',
-    'x-idempotency-key': 'unique-key'
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`,
+    "x-idempotency-key": self.crypto?.randomUUID?.() ?? `bet-${Date.now()}`
   },
-  body: JSON.stringify({ bet: 1000, target: 50, condition: 'under' })
+  body: JSON.stringify({ bet: 1000, target: 50, condition: "under" })
 });
 ```
 
@@ -152,8 +161,7 @@ Gateway proxies to backend services automatically.
 ```bash
 curl -X POST http://localhost:3000/api/v1/games/dice/bet \
   -H "Content-Type: application/json" \
-  -H "x-user-id: user123" \
-  -H "x-operator-id: operator1" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
   -H "x-idempotency-key: test-123" \
   -d '{"bet": 1000, "target": 50, "condition": "under"}'
 ```
@@ -209,7 +217,7 @@ FRONTEND_ORIGIN=*
 ### Frontend Routes
 
 - `GET /games` - Game lobby (lists all games)
-- `GET /games/:gameId` - Launch game frontend
+- `GET /games/:gameId?session=<JWT>` - Launch game frontend with a JWT passed via query string
 - `GET /games/:gameId/assets/*` - Static assets
 
 ### API Routes

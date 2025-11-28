@@ -10,6 +10,7 @@
     "start:dev": "ts-node --transpile-only src/main.ts"
   },
   "dependencies": {
+    "@instant-games/core-auth": "workspace:*",
     "@instant-games/core-logging": "workspace:*",
     "@instant-games/core-metrics": "workspace:*",
     "@nestjs/axios": "^3.0.0",

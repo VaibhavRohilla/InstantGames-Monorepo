@@ -1,7 +1,9 @@
-import { Controller, Get, Param, NotFoundException } from "@nestjs/common";
+import { Controller, Get, Param, NotFoundException, UseGuards } from "@nestjs/common";
+import { AuthGuard } from "@instant-games/core-auth";
 import { GameRegistryService } from "../services/game-registry.service";
 
 @Controller("api/v1/games")
+@UseGuards(AuthGuard)
 export class GamesController {
   constructor(private readonly gameRegistry: GameRegistryService) {}
 

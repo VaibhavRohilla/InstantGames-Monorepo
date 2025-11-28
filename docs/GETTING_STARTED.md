@@ -73,7 +73,11 @@ Create `.env` file or export:
 DATABASE_URL=postgres://postgres:postgres@localhost:5432/instantgames
 REDIS_URL=redis://localhost:6379
 WALLET_IMPL=demo  # Demo mode = Redis-only wallet
+AUTH_JWT_SECRET=dev-super-secret-key
+AUTH_JWT_ALGO=HS256  # default
 ```
+
+> ℹ️ For RS256 in production, set `AUTH_JWT_ALGO=RS256` and provide `AUTH_JWT_PUBLIC_KEY`.
 
 ### 5. Build and Run
 
@@ -83,17 +87,38 @@ pnpm build
 pnpm --filter @instant-games/dice-api start:dev
 ```
 
-### 6. Test the API
+### 6. Generate a dev JWT token
+
+Set the same secret locally (or ensure it is already exported), then run:
+
+```bash
+export AUTH_JWT_SECRET=dev-super-secret-key
+
+DEV_TOKEN=$(node -e "const jwt=require('jsonwebtoken'); console.log(jwt.sign({
+  sub: 'demo-user-123',
+  operatorId: 'demo-operator',
+  currency: 'USD',
+  mode: 'demo'
+}, process.env.AUTH_JWT_SECRET, { algorithm: 'HS256', expiresIn: '1h' }))")
+```
+
+Keep `DEV_TOKEN` handy for the next step.  
+To launch the gateway-hosted UI with the same token, open:
+
+```
+http://localhost:3000/games/dice?session=$DEV_TOKEN
+```
+
+### 7. Test the API
 
 ```bash
 # Health check
 curl http://localhost:3001/dice/health
 
-# Place a bet
+# Place a bet (JWT auth)
 curl -X POST http://localhost:3001/dice/bet \
   -H "Content-Type: application/json" \
-  -H "x-user-id: demo-user-123" \
-  -H "x-operator-id: demo-operator" \
+  -H "Authorization: Bearer $DEV_TOKEN" \
   -H "x-idempotency-key: test-$(date +%s)" \
   -d '{
     "bet": 1000,
@@ -101,6 +126,28 @@ curl -X POST http://localhost:3001/dice/bet \
     "condition": "under"
   }'
 ```
+
+### Authentication (JWT for demo & production)
+
+All APIs accept **only** JWT tokens via the `Authorization: Bearer <token>` header.  
+The required claims inside the token are:
+
+| Claim       | Description                  | Required |
+|-------------|------------------------------|----------|
+| `sub`       | User ID                      | ✅ |
+| `operatorId`| Operator / tenant ID         | ✅ |
+| `currency`  | Currency code (ISO-4217)     | ✅ |
+| `mode`      | `"demo"` or `"real"`         | ✅ |
+| `brandId`   | Brand identifier             | optional |
+| `country`   | ISO country code             | optional |
+| `isTestUser`| Boolean flag                 | optional |
+
+Demo vs real-money is determined solely by the `mode` claim; there are no separate endpoints.
+
+To test locally:
+1. Set `AUTH_JWT_SECRET`.
+2. Generate a token as shown above.
+3. Pass it via `Authorization: Bearer <token>` on every request.
 
 ## Full Setup Guide
 
@@ -196,8 +243,7 @@ Example bet request:
 ```bash
 curl -X POST http://localhost:3001/dice/bet \
   -H "Content-Type: application/json" \
-  -H "x-user-id: user123" \
-  -H "x-operator-id: operator1" \
+  -H "Authorization: Bearer $DEV_TOKEN" \
   -H "x-idempotency-key: unique-key-12345" \
   -d '{
     "bet": 100,
@@ -207,8 +253,7 @@ curl -X POST http://localhost:3001/dice/bet \
 ```
 
 **Required Headers:**
-- `x-user-id` - User identifier
-- `x-operator-id` - Operator identifier
+- `Authorization: Bearer <token>` - JWT containing the claims above
 - `x-idempotency-key` - Unique key for idempotency
 
 ## What's Different in Demo Mode?

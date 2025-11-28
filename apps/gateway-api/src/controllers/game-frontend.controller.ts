@@ -1,9 +1,11 @@
-import { Controller, Get, Param, Res, NotFoundException } from "@nestjs/common";
-import { Response } from "express";
+import { Controller, Get, Param, Res, NotFoundException, Req } from "@nestjs/common";
+import { Request, Response } from "express";
 import { readFileSync, existsSync } from "fs";
-import { join } from "path";
 import { FrontendService } from "../services/frontend.service";
-import { GameRegistryService } from "../services/game-registry.service";
+import { GameInfo, GameRegistryService } from "../services/game-registry.service";
+
+const frontendCache = new Map<string, string>();
+const shouldCacheFrontends = (process.env.NODE_ENV ?? "development") === "production";
 
 @Controller("games")
 export class GameFrontendController {
@@ -21,8 +23,9 @@ export class GameFrontendController {
   }
 
   @Get(":gameId")
-  serveGame(@Param("gameId") gameId: string, @Res() res: Response) {
+  serveGame(@Param("gameId") gameId: string, @Req() req: Request, @Res() res: Response) {
     const game = this.gameRegistry.getGame(gameId);
+    const sessionToken = this.extractSessionToken(req);
 
     if (!game || !game.enabled) {
       throw new NotFoundException(`Game ${gameId} not found`);
@@ -30,47 +33,54 @@ export class GameFrontendController {
 
     // If external frontend URL is configured, serve wrapper that loads external frontend
     if (game.externalFrontendUrl) {
-      const wrapperHtml = this.createExternalFrontendWrapper(game);
+      const wrapperHtml = this.createExternalFrontendWrapper(game, sessionToken);
       res.setHeader("Content-Type", "text/html");
       return res.send(wrapperHtml);
     }
 
     // Try to serve custom index.html first (local files)
     const customIndexPath = this.frontendService.getGameIndexPath(gameId);
-    if (existsSync(customIndexPath)) {
-      try {
-        const customHtml = readFileSync(customIndexPath, "utf-8");
-        // Inject config into custom HTML if it has placeholder
-        const html = customHtml.replace(
-          /<script>\s*window\.GAME_CONFIG\s*=\s*\{[^}]*\};?\s*<\/script>/,
-          `<script>window.GAME_CONFIG = ${JSON.stringify({
-            gameId: game.id,
-            gameName: game.name,
-            apiBaseUrl: game.apiBaseUrl,
-            backendUrl: game.backendUrl,
-            frontendUrl: game.frontendUrl,
-          })};</script>`,
-        );
-        res.setHeader("Content-Type", "text/html");
-        return res.send(html);
-      } catch (error) {
-        // Fall through to template
-      }
+    const customHtml = this.getCachedFrontend(customIndexPath);
+    if (customHtml) {
+      const html = customHtml.replace(
+        /<script>\s*window\.GAME_CONFIG\s*=\s*\{[^}]*\};?\s*<\/script>/,
+        `<script>window.GAME_CONFIG = ${JSON.stringify({
+          gameId: game.id,
+          gameName: game.name,
+          apiBaseUrl: game.apiBaseUrl,
+          backendUrl: game.backendUrl,
+          frontendUrl: game.frontendUrl,
+          jwtToken: sessionToken ?? "",
+        })};</script>`,
+      );
+      res.setHeader("Content-Type", "text/html");
+      return res.send(html);
     }
 
     // Fallback to template (local hosting)
-    const html = this.frontendService.getGameHtml(gameId);
+    const html = this.frontendService.getGameHtml(gameId, sessionToken);
     res.setHeader("Content-Type", "text/html");
     res.send(html);
   }
 
-  private createExternalFrontendWrapper(game: any): string {
+  private extractSessionToken(req: Request): string | undefined {
+    const sessionParam = req.query.session;
+    if (typeof sessionParam === "string" && sessionParam.trim().length > 0) {
+      return sessionParam.trim();
+    }
+    return undefined;
+  }
+
+  private createExternalFrontendWrapper(game: GameInfo, sessionToken?: string): string {
+    const iframeSrc = this.buildIframeSrc(game.externalFrontendUrl ?? "", sessionToken);
+
     const config = {
       gameId: game.id,
       gameName: game.name,
       apiBaseUrl: game.apiBaseUrl,
       backendUrl: game.backendUrl,
       frontendUrl: game.frontendUrl,
+      jwtToken: sessionToken ?? "",
     };
 
     // Option 1: Redirect to external URL with config in query params
@@ -133,7 +143,7 @@ export class GameFrontendController {
   </div>
   <iframe 
     id="game-iframe" 
-    src="${game.externalFrontendUrl}" 
+    src="${iframeSrc}" 
     onload="document.getElementById('loading').style.display='none'"
     allow="fullscreen"
     sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
@@ -156,7 +166,48 @@ export class GameFrontendController {
 </html>`;
   }
 
-  private generateLobbyHtml(games: any[]): string {
+  private buildIframeSrc(url: string, sessionToken?: string): string {
+    if (!sessionToken) {
+      return url;
+    }
+
+    try {
+      const parsed = new URL(url);
+      parsed.searchParams.set("session", sessionToken);
+      return parsed.toString();
+    } catch {
+      const separator = url.includes("?") ? "&" : "?";
+      return `${url}${separator}session=${encodeURIComponent(sessionToken)}`;
+    }
+  }
+
+  private getCachedFrontend(path: string): string | null {
+    if (shouldCacheFrontends) {
+      const cached = frontendCache.get(path);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    if (!existsSync(path)) {
+      return null;
+    }
+
+    try {
+      const html = readFileSync(path, "utf-8");
+      if (shouldCacheFrontends) {
+        frontendCache.set(path, html);
+      }
+      return html;
+    } catch (error) {
+      if (shouldCacheFrontends) {
+        frontendCache.delete(path);
+      }
+      return null;
+    }
+  }
+
+  private generateLobbyHtml(games: GameInfo[]): string {
     const gameCards = games
       .map(
         (game) => `

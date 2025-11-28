@@ -1,9 +1,11 @@
-import { Controller, Post, Get, Param, Body, Req, Headers, HttpCode, HttpStatus, NotFoundException } from "@nestjs/common";
+import { Controller, Post, Get, Param, Body, Req, Headers, HttpCode, HttpStatus, NotFoundException, UseGuards } from "@nestjs/common";
 import { Request } from "express";
+import { AuthGuard, AuthContext, AUTH_CONTEXT_REQUEST_KEY } from "@instant-games/core-auth";
 import { GameProxyService } from "../services/game-proxy.service";
 import { GameRegistryService } from "../services/game-registry.service";
 
 @Controller("api/v1/games")
+@UseGuards(AuthGuard)
 export class GameApiController {
   constructor(
     private readonly proxyService: GameProxyService,
@@ -32,10 +34,17 @@ export class GameApiController {
       throw new NotFoundException(`Game ${gameId} not found or disabled`);
     }
 
-    // Extract headers to forward
+    // Extract headers to forward - only forward JWT token and other non-auth headers
     const forwardHeaders: Record<string, string> = {};
-    const headerKeys = ["x-user-id", "x-operator-id", "x-idempotency-key", "x-correlation-id", "authorization"];
 
+    // Forward Authorization header (JWT token) - this is the only auth mechanism
+    const authHeader = headers["authorization"] || headers["Authorization"];
+    if (authHeader) {
+      forwardHeaders["authorization"] = authHeader;
+    }
+
+    // Forward other important non-auth headers
+    const headerKeys = ["x-idempotency-key", "x-correlation-id"];
     for (const key of headerKeys) {
       const value = headers[key] || headers[key.toLowerCase()];
       if (value) {

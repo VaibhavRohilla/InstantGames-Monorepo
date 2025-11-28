@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { AuthModule, AUTH_PORT, DummyAuthPort } from "@instant-games/core-auth";
+import { AuthModule } from "@instant-games/core-auth";
 import { DbModule, DB_CLIENT } from "@instant-games/core-db";
 import { RedisModule, KEY_VALUE_STORE, LOCK_MANAGER } from "@instant-games/core-redis";
 import { LoggingModule, CorrelationIdInterceptor } from "@instant-games/core-logging";
@@ -37,7 +37,6 @@ import { GameBetRunner } from "@instant-games/core-game-slice";
       provide: APP_INTERCEPTOR,
       useClass: CorrelationIdInterceptor,
     },
-    { provide: AUTH_PORT, useClass: DummyAuthPort },
     { provide: PROVABLY_FAIR_SERVICE, useClass: ProvablyFairService },
     {
       provide: PF_ROTATION_SERVICE,

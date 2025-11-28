@@ -1,8 +1,9 @@
-import { BadRequestException, Body, Controller, Headers, Inject, Post, UseGuards } from "@nestjs/common";
-import { AuthGuard, AuthContext, CurrentUser } from "@instant-games/core-auth";
+import { Body, Controller, Inject, Post, UseGuards } from "@nestjs/common";
+import { AuthGuard, AuthContext, Auth } from "@instant-games/core-auth";
 import { MinesService } from "./mines.service";
 import { MinesBetDto } from "./dto/mines-bet.dto";
 import { MinesBetResponse } from "./dto/mines-response.dto";
+import { IdempotencyKey } from "@instant-games/core-idempotency";
 
 @Controller("mines")
 @UseGuards(AuthGuard)
@@ -11,13 +12,10 @@ export class MinesController {
 
   @Post("bet")
   placeBet(
-    @CurrentUser() ctx: AuthContext,
+    @Auth() ctx: AuthContext,
     @Body() dto: MinesBetDto,
-    @Headers("x-idempotency-key") idempotencyKey?: string,
+    @IdempotencyKey() idempotencyKey: string,
   ): Promise<MinesBetResponse> {
-    if (!idempotencyKey) {
-      throw new BadRequestException("x-idempotency-key header is required");
-    }
     return this.minesService.placeBet(ctx, dto, idempotencyKey);
   }
 }

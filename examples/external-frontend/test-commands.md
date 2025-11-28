@@ -66,8 +66,7 @@ curl http://localhost:3000/api/v1/games/dice/health
 ```bash
 curl -X POST http://localhost:3000/api/v1/games/dice/bet \
   -H "Content-Type: application/json" \
-  -H "x-user-id: test-user" \
-  -H "x-operator-id: test-operator" \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
   -H "x-idempotency-key: test-$(date +%s)" \
   -d '{
     "bet": 1000,
@@ -76,9 +75,13 @@ curl -X POST http://localhost:3000/api/v1/games/dice/bet \
   }'
 ```
 
+> Tip: generate `<JWT_TOKEN>` using the snippet from [docs/GETTING_STARTED.md](../../docs/GETTING_STARTED.md#authentication-jwt-for-demo--production) and open the page with `?session=<JWT_TOKEN>`.
+
 ### 6. Access Game in Browser
 
-Open: `http://localhost:3000/games/dice`
+Open: `http://localhost:3000/games/dice?session=<JWT_TOKEN>`
+
+> Use the same token you generated for the API tests.
 
 Should see:
 - ✅ Connected status
@@ -125,8 +128,7 @@ export DICE_FRONTEND_URL=http://localhost:8081/dice-game/index.html
 
 1. Verify dice-api is running on port 3001
 2. Check gateway logs for proxy errors
-3. Verify all required headers are present:
-   - `x-user-id`
-   - `x-operator-id`
+3. Verify headers:
+   - `Authorization: Bearer <token>`
    - `x-idempotency-key`
 

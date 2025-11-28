@@ -2,6 +2,7 @@ import { Controller, Get, Inject, Param, Query, UseGuards } from "@nestjs/common
 import { IsOptional, IsString } from "class-validator";
 import { AdminAuthGuard } from "../auth/admin-auth.guard";
 import { WalletBalanceDto, WalletsService } from "../services/wallets.service";
+import { GameMode } from "@instant-games/core-types";
 
 class WalletQueryDto {
   @IsString()
@@ -17,7 +18,7 @@ class WalletQueryDto {
 
   @IsOptional()
   @IsString()
-  mode?: string;
+  mode?: GameMode;
 }
 
 @Controller("admin/wallets")
@@ -31,7 +32,7 @@ export class WalletsController {
       operatorId: query.operatorId,
       userId: query.userId,
       currency: query.currency,
-      mode: query.mode as any,
+      mode: query.mode ,
     });
   }
 
@@ -40,9 +41,9 @@ export class WalletsController {
     @Param("operatorId") operatorId: string,
     @Param("userId") userId: string,
     @Param("currency") currency: string,
-    @Param("mode") mode: string
+    @Param("mode") mode: GameMode
   ): Promise<WalletBalanceDto> {
-    return this.walletsService.getBalance(operatorId, userId, currency, mode as any);
+    return this.walletsService.getBalance(operatorId, userId, currency, mode );
   }
 }
 

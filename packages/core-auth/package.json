@@ -8,7 +8,12 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@instant-games/core-errors": "workspace:*",
     "@instant-games/core-types": "workspace:*",
-    "@nestjs/common": "^11.1.9"
+    "@nestjs/common": "^11.1.9",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.5"
   }
 }

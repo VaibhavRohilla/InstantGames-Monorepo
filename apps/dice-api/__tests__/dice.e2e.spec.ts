@@ -20,25 +20,28 @@ import { GameBetRunner } from "@instant-games/core-game-slice";
 import { RiskService, RISK_SERVICE } from "@instant-games/core-risk";
 import { DB_CLIENT, IDbClient } from "@instant-games/core-db";
 import { InMemoryStore, createDbClient, NoopLockManager, InMemoryLogger, NoopMetrics } from "apps/test-utils/test-helpers";
-
-
-// helper implementations provided by test-helpers.ts
+import { createTestAuthToken } from "apps/test-utils/auth-helpers";
 
 describe("Dice API e2e", () => {
   let app: INestApplication;
   let dbClient: IDbClient;
   let kvStore: InMemoryStore;
+  const operatorId = "op-test";
+  const currency = "USD";
+
+  const getAuthHeader = (userId: string, mode: "demo" | "real" = "demo") =>
+    `Bearer ${createTestAuthToken({ userId, operatorId, currency, mode })}`;
 
   beforeAll(async () => {
     dbClient = await createDbClient();
     kvStore = new InMemoryStore();
 
-    await dbClient.query(`INSERT INTO operators (id, name) VALUES ($1, $2)`, ["op-test", "Test Operator"]);
+    await dbClient.query(`INSERT INTO operators (id, name) VALUES ($1, $2)`, [operatorId, "Test Operator"]);
     for (const mode of ["demo", "real"] as const) {
       await dbClient.query(
         `INSERT INTO game_configs (id, operator_id, game, currency, mode, min_bet, max_bet, max_payout_per_round, math_version, extra)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [randomUUID(), "op-test", "dice", "USD", mode, "100", "100000", "1000000", "v1", JSON.stringify({})]
+        [randomUUID(), operatorId, "dice", currency, mode, "100", "100000", "1000000", "v1", JSON.stringify({})]
       );
     }
 
@@ -102,8 +105,8 @@ describe("Dice API e2e", () => {
     await app.init();
 
     const walletRouter = app.get<WalletRouter>(WALLET_ROUTER);
-    await walletRouter.resolve("demo").credit(scopeWalletUserId("op-test", "player-1"), BigInt(1000), "USD", "demo");
-    await walletRouter.resolve("real").credit(scopeWalletUserId("op-test", "player-2"), BigInt(2000), "USD", "real");
+    await walletRouter.resolve("demo").credit(scopeWalletUserId(operatorId, "player-1"), BigInt(1000), currency, "demo");
+    await walletRouter.resolve("real").credit(scopeWalletUserId(operatorId, "player-2"), BigInt(2000), currency, "real");
   });
 
 afterAll(async () => {
@@ -115,9 +118,7 @@ afterAll(async () => {
   it("places and settles a dice bet", async () => {
     const response = await request(app.getHttpServer())
       .post("/dice/bet")
-      .set("x-user-id", "player-1")
-      .set("x-operator-id", "op-test")
-      .set("x-currency", "USD")
+      .set("Authorization", getAuthHeader("player-1"))
       .set("x-idempotency-key", "idem-1")
       .send({ betAmount: "100", target: 50, condition: "under" })
       .expect(201);
@@ -136,17 +137,14 @@ afterAll(async () => {
   it("settles real-money bets against the DB wallet", async () => {
     const response = await request(app.getHttpServer())
       .post("/dice/bet")
-      .set("x-user-id", "player-2")
-      .set("x-operator-id", "op-test")
-      .set("x-currency", "USD")
-      .set("x-game-mode", "real")
+      .set("Authorization", getAuthHeader("player-2", "real"))
       .set("x-idempotency-key", "idem-real-1")
       .send({ betAmount: "500", target: 55, condition: "under" })
       .expect(201);
 
     const [walletRow] = await dbClient.query(
       `SELECT balance FROM wallet_balances WHERE operator_id = $1 AND user_id = $2 AND currency = $3 AND mode = $4`,
-      ["op-test", "player-2", "USD", "real"]
+      [operatorId, "player-2", currency, "real"]
     );
     expect(walletRow).toBeDefined();
     const ledgerRows = await dbClient.query(`SELECT * FROM wallet_transactions WHERE round_id = $1 ORDER BY created_at`, [
@@ -160,37 +158,31 @@ afterAll(async () => {
   });
 
   it("rejects bets when mode is disabled", async () => {
-    await dbClient.query(`UPDATE game_configs SET demo_enabled = FALSE WHERE operator_id = $1`, ["op-test"]);
-    await kvStore.del("config:op-test:dice:USD:demo");
+    await dbClient.query(`UPDATE game_configs SET demo_enabled = FALSE WHERE operator_id = $1`, [operatorId]);
+    await kvStore.del(`config:${operatorId}:dice:${currency}:demo`);
 
     await request(app.getHttpServer())
       .post("/dice/bet")
-      .set("x-user-id", "player-1")
-      .set("x-operator-id", "op-test")
-      .set("x-currency", "USD")
+      .set("Authorization", getAuthHeader("player-1"))
       .set("x-idempotency-key", "idem-2")
       .send({ betAmount: "100", target: 50, condition: "under" })
       .expect(403);
 
-    await dbClient.query(`UPDATE game_configs SET demo_enabled = TRUE WHERE operator_id = $1`, ["op-test"]);
-    await kvStore.del("config:op-test:dice:USD:demo");
+    await dbClient.query(`UPDATE game_configs SET demo_enabled = TRUE WHERE operator_id = $1`, [operatorId]);
+    await kvStore.del(`config:${operatorId}:dice:${currency}:demo`);
   });
 
   it("returns cached response for duplicate idempotency keys", async () => {
     const responseA = await request(app.getHttpServer())
       .post("/dice/bet")
-      .set("x-user-id", "player-1")
-      .set("x-operator-id", "op-test")
-      .set("x-currency", "USD")
+      .set("Authorization", getAuthHeader("player-1"))
       .set("x-idempotency-key", "idem-3")
       .send({ betAmount: "100", target: 55, condition: "under" })
       .expect(201);
 
     const responseB = await request(app.getHttpServer())
       .post("/dice/bet")
-      .set("x-user-id", "player-1")
-      .set("x-operator-id", "op-test")
-      .set("x-currency", "USD")
+      .set("Authorization", getAuthHeader("player-1"))
       .set("x-idempotency-key", "idem-3")
       .send({ betAmount: "100", target: 55, condition: "under" })
       .expect(201);
@@ -203,20 +195,16 @@ afterAll(async () => {
 
     const firstBet = await request(app.getHttpServer())
       .post("/dice/bet")
-      .set("x-user-id", "player-1")
-      .set("x-operator-id", "op-test")
-      .set("x-currency", "USD")
+      .set("Authorization", getAuthHeader("player-1"))
       .set("x-idempotency-key", "idem-rot-a")
       .send({ betAmount: "150", target: 60, condition: "under" })
       .expect(201);
 
-    await rotation.rotateServerSeed({ operatorId: "op-test", game: "dice", mode: "demo" });
+    await rotation.rotateServerSeed({ operatorId, game: "dice", mode: "demo" });
 
     const secondBet = await request(app.getHttpServer())
       .post("/dice/bet")
-      .set("x-user-id", "player-1")
-      .set("x-operator-id", "op-test")
-      .set("x-currency", "USD")
+      .set("Authorization", getAuthHeader("player-1"))
       .set("x-idempotency-key", "idem-rot-b")
       .send({ betAmount: "150", target: 60, condition: "under" })
       .expect(201);

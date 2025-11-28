@@ -3,16 +3,17 @@ import { Type } from "class-transformer";
 import { IsInt, IsISO8601, IsOptional, IsString, Min } from "class-validator";
 import { AdminAuthGuard } from "../auth/admin-auth.guard";
 import { AdminRoundDto, RoundsService } from "../services/rounds.service";
+import { GameMode, GameName } from "@instant-games/core-types";
 
 class ListRoundsDto {
   @IsString()
   operatorId!: string;
 
   @IsString()
-  game!: string;
+  game!: GameName;
 
   @IsString()
-  mode!: string;
+  mode!: GameMode;
 
   @IsOptional()
   @IsString()
@@ -39,8 +40,8 @@ export class RoundsController {
     const cursorDate = query.cursor ? new Date(query.cursor) : undefined;
     return this.roundsService.list({
       operatorId: query.operatorId,
-      game: query.game as any,
-      mode: query.mode as any,
+      game: query.game,
+      mode: query.mode,
       userId: query.userId,
       cursor: cursorDate,
       limit: clampLimit(query.limit),

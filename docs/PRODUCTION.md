@@ -128,6 +128,8 @@ If not set correctly, the system will silently fall back to demo wallet (Redis-o
 ### Before Going to Production
 
 - [ ] Set `WALLET_IMPL=db` for real-money transactions
+- [ ] Configure JWT signing keys (`AUTH_JWT_ALGO`, secret/public key, issuer, audience)
+- [ ] Set up JWT key management (RS256 recommended)
 - [ ] Configure database connection pooling
 - [ ] Set up Redis clustering for high availability
 - [ ] Enable SSL/TLS for all connections
@@ -143,6 +145,14 @@ If not set correctly, the system will silently fall back to demo wallet (Redis-o
 # Critical for production
 WALLET_IMPL=db  # NOT "demo"
 
+# Authentication (JWT only)
+AUTH_JWT_ALGO=RS256             # RS256 recommended
+AUTH_JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----
+AUTH_JWT_ISSUER=https://operator.example.com
+AUTH_JWT_AUDIENCE=instant-games-platform
+# For HS256 environments:
+# AUTH_JWT_SECRET=super-secret-value
+
 # Database
 DATABASE_URL=postgres://user:pass@host:5432/db
 DB_MAX_CONNECTIONS=20
@@ -157,6 +167,83 @@ LOG_LEVEL=info  # or warn for production
 # Monitoring
 METRICS_DISABLED=false
 ```
+
+## Authentication
+
+### JWT Mode (Production)
+
+For production, use JWT-based authentication instead of header-based dev mode.
+
+**Configuration:**
+
+1. **Choose algorithm and provide keys:**
+
+   **Option A: RS256 (Recommended for production)**
+   ```bash
+   AUTH_JWT_ALGO=RS256
+   AUTH_JWT_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----
+   ...
+   -----END PUBLIC KEY-----
+   ```
+   Or base64-encoded:
+   ```bash
+   AUTH_JWT_PUBLIC_KEY=LS0tLS1CRUdJTi...
+   ```
+
+   **Option B: HS256 (Simpler, but shared secret)**
+   ```bash
+   AUTH_JWT_ALGO=HS256
+   AUTH_JWT_SECRET=your-secret-key-here
+   ```
+
+**JWT Token Requirements:**
+
+JWTs must include the following claims:
+
+- `sub` or `userId`: User identifier (string, required)
+- `operatorId`: Operator identifier (string, required)
+- `currency`: Currency code (string, required)
+- `mode`: Game mode "demo" | "real" (string, required)
+- `exp`: Token expiration (number, required)
+- `nbf`: Not before (number, optional)
+
+**Optional claims:**
+- `brandId`: Brand identifier
+- `country`: Country code
+- `isTestUser`: Test user flag
+- Additional claims are included in `metadata`
+
+**Example JWT Payload:**
+```json
+{
+  "sub": "user123",
+  "operatorId": "operator1",
+  "currency": "USD",
+  "mode": "real",
+  "brandId": "brand1",
+  "country": "US",
+  "exp": 1234567890,
+  "iat": 1234567890
+}
+```
+
+**Usage:**
+```bash
+curl -X POST https://api.example.com/api/v1/games/dice/bet \
+  -H "Authorization: Bearer <JWT_TOKEN>" \
+  -H "x-idempotency-key: ..." \
+  -d '{...}'
+```
+
+**Security Notes:**
+- ✅ Use RS256 for production (asymmetric keys)
+- ✅ Keep private keys secure (never commit to code)
+- ✅ Set appropriate token expiration times
+- ✅ Rotate keys periodically
+- ✅ Use HTTPS in production
+- ❌ Never use dev-header mode in production
+
+For generating dev tokens locally, follow the steps in [Getting Started](./GETTING_STARTED.md#authentication-jwt-for-demo--production).
 
 ### Database Setup
 

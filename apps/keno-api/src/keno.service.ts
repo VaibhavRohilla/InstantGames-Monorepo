@@ -22,6 +22,8 @@ const GAME: GameName = "keno";
 
 @Injectable()
 export class KenoService {
+  private readonly engine = new KenoMathEngine();
+
   constructor(
     @Inject(GAME_CONFIG_SERVICE) private readonly configService: IGameConfigService,
     @Inject(RNG_SERVICE) private readonly rng: IRngService,
@@ -39,8 +41,6 @@ export class KenoService {
   async placeBet(ctx: AuthContext, dto: KenoBetDto, idempotencyKey: string): Promise<KenoBetResponse> {
     const betAmount = BigInt(dto.betAmount);
     const betCtx: GameBetContext = { ...ctx, game: GAME };
-    const engine = new KenoMathEngine();
-
     const result = await this.gameBetRunner.run({
       ctx: betCtx,
       request: {
@@ -49,7 +49,7 @@ export class KenoService {
         clientSeed: dto.clientSeed,
       },
       idempotencyKey,
-      mathEngine: engine,
+      mathEngine: this.engine,
       configService: this.configService,
       riskService: this.riskService,
       provablyFairStore: this.provablyFairStore,

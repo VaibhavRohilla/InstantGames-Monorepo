@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "rootDir": ".",
+    "rootDir": "../..",
     "outDir": "dist"
   },
   "include": ["src", "__tests__"],
@@ -22,6 +22,7 @@
     { "path": "../../packages/core-types" },
     { "path": "../../packages/core-wallet" },
     { "path": "../../packages/core-game-slice" },
+    { "path": "../../packages/game-core" },
     { "path": "../../packages/game-math-coinflip" }
   ]
 }

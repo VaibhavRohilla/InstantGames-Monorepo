@@ -320,6 +320,22 @@
     let gameConfig = null;
     let isLoading = false;
 
+    function getQuerySessionToken() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get("session");
+    }
+
+    function getJwtToken() {
+      if (gameConfig?.jwtToken) {
+        return gameConfig.jwtToken;
+      }
+      const queryToken = getQuerySessionToken();
+      if (queryToken) {
+        return queryToken;
+      }
+      return null;
+    }
+
     function updateConfigStatus() {
       const configInfo = document.getElementById('config-info');
       const configStatus = document.getElementById('config-status');
@@ -361,6 +377,12 @@
     async function placeBet() {
       if (!gameConfig) {
         showError('Game configuration not available. Please load this page through the Gateway.');
+        return;
+      }
+
+      const token = getJwtToken();
+      if (!token) {
+        showError('Missing JWT token. Append ?session=<token> to the URL or ensure the gateway wrapper set window.GAME_CONFIG.jwtToken.');
         return;
       }
 
@@ -406,8 +428,7 @@
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-user-id': 'demo-user',
-            'x-operator-id': 'demo-operator',
+            'Authorization': `Bearer ${token}`,
             'x-idempotency-key': `bet-${Date.now()}-${Math.random().toString(36).substring(7)}`
           },
           body: JSON.stringify({

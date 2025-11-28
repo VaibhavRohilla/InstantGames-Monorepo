@@ -50,6 +50,12 @@ export class NoopMetrics implements IMetrics {
   observe(): void {}
 }
 
+/**
+ * Default JWT secret for test environments
+ * This should match the AUTH_JWT_SECRET used in tests
+ */
+export const TEST_JWT_SECRET = "test-jwt-secret-for-development-only";
+
 export async function createDbClient(): Promise<IDbClient> {
   const db = newDb({ autoCreateForeignKeyIndices: true });
   db.public.registerFunction({

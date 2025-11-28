@@ -1,4 +1,6 @@
+import { BadRequestException, ExecutionContext, createParamDecorator } from "@nestjs/common";
 import { IKeyValueStore } from "@instant-games/core-redis";
+import { RgsErrorCode, rgsErrorPayload } from "@instant-games/core-errors";
 
 export interface PerformOptions<T> {
   onCached?: (cached: T) => void;
@@ -9,6 +11,19 @@ export interface IIdempotencyStore {
 }
 
 export const IDEMPOTENCY_STORE = Symbol("IDEMPOTENCY_STORE");
+export const IDEMPOTENCY_HEADER = "x-idempotency-key";
+
+export const IdempotencyKey = createParamDecorator((_data: unknown, ctx: ExecutionContext): string => {
+  const request = ctx.switchToHttp().getRequest<{ headers: Record<string, string | string[] | undefined> }>();
+  const header = request.headers[IDEMPOTENCY_HEADER] ?? request.headers[IDEMPOTENCY_HEADER.toLowerCase()];
+  const value = Array.isArray(header) ? header[0] : header;
+  if (!value) {
+    throw new BadRequestException(
+      rgsErrorPayload(RgsErrorCode.IDEMPOTENCY_KEY_MISSING, `Header ${IDEMPOTENCY_HEADER} is required for this endpoint`),
+    );
+  }
+  return value;
+});
 
 export class RedisIdempotencyStore implements IIdempotencyStore {
   constructor(private readonly store: IKeyValueStore, private readonly pollIntervalMs = 50) {}

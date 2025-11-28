@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { HttpModule } from "@nestjs/axios";
+import { AuthModule } from "@instant-games/core-auth";
 import { LoggingModule, CorrelationIdInterceptor } from "@instant-games/core-logging";
 import { MetricsModule } from "@instant-games/core-metrics";
 import { APP_INTERCEPTOR } from "@nestjs/core";
@@ -16,6 +17,7 @@ import { FrontendService } from "./services/frontend.service";
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     HttpModule,
+    AuthModule,
     LoggingModule,
     MetricsModule,
   ],
