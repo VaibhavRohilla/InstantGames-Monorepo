@@ -11,6 +11,13 @@
   },
   "dependencies": {
     "@instant-games/game-math-dice": "workspace:*",
+    "@instant-games/game-math-coinflip": "workspace:*",
+    "@instant-games/game-math-roulette": "workspace:*",
+    "@instant-games/game-math-mines": "workspace:*",
+    "@instant-games/game-math-hilo": "workspace:*",
+    "@instant-games/game-math-plinko": "workspace:*",
+    "@instant-games/game-math-wheel": "workspace:*",
+    "@instant-games/game-math-keno": "workspace:*",
     "reflect-metadata": "^0.2.2"
   }
 }

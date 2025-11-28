@@ -659,9 +659,30 @@ importers:
 
   apps/simulator-cli:
     dependencies:
+      '@instant-games/game-math-coinflip':
+        specifier: workspace:*
+        version: link:../../packages/game-math-coinflip
       '@instant-games/game-math-dice':
         specifier: workspace:*
         version: link:../../packages/game-math-dice
+      '@instant-games/game-math-hilo':
+        specifier: workspace:*
+        version: link:../../packages/game-math-hilo
+      '@instant-games/game-math-keno':
+        specifier: workspace:*
+        version: link:../../packages/game-math-keno
+      '@instant-games/game-math-mines':
+        specifier: workspace:*
+        version: link:../../packages/game-math-mines
+      '@instant-games/game-math-plinko':
+        specifier: workspace:*
+        version: link:../../packages/game-math-plinko
+      '@instant-games/game-math-roulette':
+        specifier: workspace:*
+        version: link:../../packages/game-math-roulette
+      '@instant-games/game-math-wheel':
+        specifier: workspace:*
+        version: link:../../packages/game-math-wheel
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
