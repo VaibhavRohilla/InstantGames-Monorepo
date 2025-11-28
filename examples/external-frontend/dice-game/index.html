@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dice Game - External Frontend Example</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .game-container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 600px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 0.9rem;
+    }
+
+    .config-info {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      font-size: 0.85rem;
+      color: #555;
+    }
+
+    .config-info strong {
+      color: #333;
+    }
+
+    .controls {
+      display: grid;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    label {
+      font-weight: 600;
+      color: #333;
+      font-size: 0.9rem;
+    }
+
+    input[type="number"],
+    select {
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .bet-button {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .bet-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .bet-button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .bet-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .result {
+      margin-top: 25px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .result.show {
+      display: block;
+      animation: fadeIn 0.3s;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .result h3 {
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .result-item:last-child {
+      border-bottom: none;
+    }
+
+    .result-label {
+      color: #666;
+      font-weight: 500;
+    }
+
+    .result-value {
+      color: #333;
+      font-weight: 600;
+    }
+
+    .result-value.win {
+      color: #10b981;
+    }
+
+    .result-value.loss {
+      color: #ef4444;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+
+    .error {
+      background: #fee;
+      color: #c33;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .error.show {
+      display: block;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+
+    .status-badge.connected {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-badge.disconnected {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1>🎲 Dice Game <span id="status-badge" class="status-badge disconnected">Not Connected</span></h1>
+    <p class="subtitle">External Frontend Example - Configured by Gateway</p>
+
+    <div class="config-info" id="config-info">
+      <strong>⚙️ Configuration Status:</strong><br>
+      <span id="config-status">Loading configuration...</span>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="bet-amount">Bet Amount</label>
+        <input type="number" id="bet-amount" value="1000" min="100" step="100">
+      </div>
+
+      <div class="control-group">
+        <label for="target">Target Number (2-98)</label>
+        <input type="number" id="target" value="50" min="2" max="98">
+      </div>
+
+      <div class="control-group">
+        <label for="condition">Condition</label>
+        <select id="condition">
+          <option value="under">Under (Roll &lt; Target)</option>
+          <option value="over">Over (Roll &gt; Target)</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="bet-button" id="bet-button" onclick="placeBet()">Place Bet</button>
+
+    <div class="error" id="error-message"></div>
+
+    <div class="result" id="result">
+      <h3>🎯 Result</h3>
+      <div class="result-item">
+        <span class="result-label">Rolled:</span>
+        <span class="result-value" id="rolled-value">-</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">Target:</span>
+        <span class="result-value" id="target-value">-</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">Condition:</span>
+        <span class="result-value" id="condition-value">-</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">Win:</span>
+        <span class="result-value" id="win-value">-</span>
+      </div>
+      <div class="result-item">
+        <span class="result-label">Payout:</span>
+        <span class="result-value" id="payout-value">-</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================
+    // Configuration Access
+    // ============================================
+    
+    /**
+     * Get game configuration from gateway wrapper
+     * Tries multiple methods to access the config
+     */
+    function getGameConfig() {
+      // Method 1: From parent window (iframe scenario)
+      if (window.parent && window.parent !== window) {
+        if (window.parent.GAME_CONFIG) {
+          return window.parent.GAME_CONFIG;
+        }
+      }
+
+      // Method 2: From current window (direct access)
+      if (window.GAME_CONFIG) {
+        return window.GAME_CONFIG;
+      }
+
+      // Method 3: From helper function
+      if (typeof window.getGameConfig === 'function') {
+        return window.getGameConfig();
+      }
+
+      // Method 4: From URL hash (alternative method)
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#config=')) {
+        try {
+          const configStr = decodeURIComponent(hash.substring(8));
+          return JSON.parse(configStr);
+        } catch (e) {
+          console.error('Failed to parse config from URL hash:', e);
+        }
+      }
+
+      // Method 5: Listen for postMessage
+      return null;
+    }
+
+    // ============================================
+    // UI State Management
+    // ============================================
+
+    let gameConfig = null;
+    let isLoading = false;
+
+    function updateConfigStatus() {
+      const configInfo = document.getElementById('config-info');
+      const configStatus = document.getElementById('config-status');
+      const statusBadge = document.getElementById('status-badge');
+      const betButton = document.getElementById('bet-button');
+
+      gameConfig = getGameConfig();
+
+      if (gameConfig) {
+        statusBadge.textContent = 'Connected';
+        statusBadge.className = 'status-badge connected';
+        
+        configStatus.innerHTML = `
+          <strong>✅ Configuration Loaded</strong><br>
+          Game ID: ${gameConfig.gameId}<br>
+          API Base URL: <code>${gameConfig.apiBaseUrl}</code><br>
+          Backend URL: <code>${gameConfig.backendUrl}</code>
+        `;
+        
+        betButton.disabled = false;
+      } else {
+        statusBadge.textContent = 'Not Connected';
+        statusBadge.className = 'status-badge disconnected';
+        
+        configStatus.innerHTML = `
+          <strong>❌ Configuration Not Available</strong><br>
+          This frontend expects to be loaded by the Gateway API.<br>
+          Access it via: <code>http://localhost:3000/games/dice</code>
+        `;
+        
+        betButton.disabled = true;
+      }
+    }
+
+    // ============================================
+    // API Communication
+    // ============================================
+
+    async function placeBet() {
+      if (!gameConfig) {
+        showError('Game configuration not available. Please load this page through the Gateway.');
+        return;
+      }
+
+      if (isLoading) {
+        return;
+      }
+
+      const betAmount = parseInt(document.getElementById('bet-amount').value) || 1000;
+      const target = parseInt(document.getElementById('target').value) || 50;
+      const condition = document.getElementById('condition').value || 'under';
+
+      // Validate inputs
+      if (betAmount < 100) {
+        showError('Bet amount must be at least 100');
+        return;
+      }
+
+      if (target < 2 || target > 98) {
+        showError('Target must be between 2 and 98');
+        return;
+      }
+
+      isLoading = true;
+      const betButton = document.getElementById('bet-button');
+      betButton.disabled = true;
+      betButton.textContent = 'Placing Bet...';
+
+      hideError();
+      hideResult();
+
+      try {
+        // Use gateway API endpoint (it will proxy to backend)
+        const apiUrl = `${gameConfig.apiBaseUrl}/bet`;
+        
+        console.log('Placing bet:', {
+          apiUrl,
+          betAmount,
+          target,
+          condition
+        });
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': 'demo-user',
+            'x-operator-id': 'demo-operator',
+            'x-idempotency-key': `bet-${Date.now()}-${Math.random().toString(36).substring(7)}`
+          },
+          body: JSON.stringify({
+            bet: betAmount,
+            target: target,
+            condition: condition
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+          throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        
+        console.log('Bet result:', result);
+        
+        displayResult(result, { betAmount, target, condition });
+        
+      } catch (error) {
+        console.error('Bet failed:', error);
+        showError(`Failed to place bet: ${error.message}`);
+      } finally {
+        isLoading = false;
+        betButton.disabled = false;
+        betButton.textContent = 'Place Bet';
+      }
+    }
+
+    // ============================================
+    // Result Display
+    // ============================================
+
+    function displayResult(result, betParams) {
+      const resultDiv = document.getElementById('result');
+      
+      document.getElementById('rolled-value').textContent = result.rolled?.toFixed(2) || 'N/A';
+      document.getElementById('target-value').textContent = betParams.target;
+      document.getElementById('condition-value').textContent = betParams.condition === 'under' ? `Under ${betParams.target}` : `Over ${betParams.target}`;
+      
+      const winValue = document.getElementById('win-value');
+      if (result.win) {
+        winValue.textContent = '✅ Yes';
+        winValue.className = 'result-value win';
+      } else {
+        winValue.textContent = '❌ No';
+        winValue.className = 'result-value loss';
+      }
+      
+      const payoutValue = document.getElementById('payout-value');
+      payoutValue.textContent = result.payout || 0;
+      if (result.win) {
+        payoutValue.className = 'result-value win';
+      } else {
+        payoutValue.className = 'result-value loss';
+      }
+      
+      resultDiv.classList.add('show');
+    }
+
+    function hideResult() {
+      document.getElementById('result').classList.remove('show');
+    }
+
+    function showError(message) {
+      const errorDiv = document.getElementById('error-message');
+      errorDiv.textContent = message;
+      errorDiv.classList.add('show');
+    }
+
+    function hideError() {
+      document.getElementById('error-message').classList.remove('show');
+    }
+
+    // ============================================
+    // PostMessage Listener (Alternative Method)
+    // ============================================
+
+    window.addEventListener('message', function(event) {
+      // Listen for config from parent window
+      if (event.data && event.data.type === 'GAME_CONFIG') {
+        window.GAME_CONFIG = event.data.config;
+        updateConfigStatus();
+      }
+    });
+
+    // Request config from parent if in iframe
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'GET_GAME_CONFIG' }, '*');
+    }
+
+    // ============================================
+    // Initialization
+    // ============================================
+
+    document.addEventListener('DOMContentLoaded', function() {
+      updateConfigStatus();
+      
+      // Update config periodically in case it loads after page
+      const configCheckInterval = setInterval(() => {
+        const currentConfig = getGameConfig();
+        if (currentConfig && !gameConfig) {
+          updateConfigStatus();
+          clearInterval(configCheckInterval);
+        }
+      }, 500);
+
+      // Clear interval after 10 seconds
+      setTimeout(() => clearInterval(configCheckInterval), 10000);
+
+      console.log('Dice Game External Frontend Loaded');
+      console.log('Current config:', gameConfig);
+      console.log('Parent window:', window.parent === window ? 'Same' : 'Different');
+    });
+  </script>
+</body>
+</html>
+

@@ -55,3 +55,15 @@ METRICS_DISABLED=false
 - Simulator CLI to validate math/RTP offline using the same math engines.
 
 Use this repo as the foundation for onboarding new games—clone the dice vertical slice and plug in the corresponding math package.
+
+## Documentation
+
+Comprehensive documentation is available in the [`docs/`](./docs/) directory:
+
+- **[Getting Started](./docs/GETTING_STARTED.md)** - Setup and running services
+- **[Gateway API](./docs/GATEWAY.md)** - Unified game launcher and API gateway
+- **[Simulator CLI](./docs/SIMULATOR.md)** - Testing game math and RTP
+- **[Production Guide](./docs/PRODUCTION.md)** - Production deployment
+- **[Reference](./docs/REFERENCE.md)** - Quick reference and common tasks
+
+See [`docs/README.md`](./docs/README.md) for the complete documentation index.

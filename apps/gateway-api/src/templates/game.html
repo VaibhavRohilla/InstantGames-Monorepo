@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{GAME_NAME}}</title>
+  <link rel="stylesheet" href="/games/{{GAME_ID}}/assets/style.css">
+  
+  <script>
+    // Injected game configuration by gateway
+    window.GAME_CONFIG = {
+      gameId: "{{GAME_ID}}",
+      gameName: "{{GAME_NAME}}",
+      apiBaseUrl: "{{API_BASE_URL}}",
+      backendUrl: "{{BACKEND_URL}}",
+      frontendUrl: "{{FRONTEND_URL}}"
+    };
+    
+    console.log("Game Config:", window.GAME_CONFIG);
+  </script>
+</head>
+<body>
+  <div id="game-container">
+    <div style="padding: 20px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <h1>{{GAME_NAME}}</h1>
+      <p>Loading game assets...</p>
+      <p style="color: #666; font-size: 14px;">If this message persists, ensure game assets are available at /games/{{GAME_ID}}/assets/</p>
+    </div>
+  </div>
+  
+  <!-- Game script will be loaded from /games/{{GAME_ID}}/assets/game.js -->
+  <script src="/games/{{GAME_ID}}/assets/game.js"></script>
+  
+  <!-- Fallback error handler -->
+  <script>
+    window.addEventListener('error', function(e) {
+      if (e.filename && e.filename.includes('game.js')) {
+        const container = document.getElementById('game-container');
+        if (container) {
+          container.innerHTML = `
+            <div style="padding: 40px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              <h2>Game Assets Not Found</h2>
+              <p>The game frontend assets are not available.</p>
+              <p style="color: #666; font-size: 14px;">
+                Expected: /games/{{GAME_ID}}/assets/game.js
+              </p>
+              <p style="margin-top: 20px;">
+                <a href="/games" style="color: #667eea; text-decoration: none;">← Back to Game Lobby</a>
+              </p>
+            </div>
+          `;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+
