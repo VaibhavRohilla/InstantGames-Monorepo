@@ -1,4 +1,4 @@
-import { INestApplication, Type } from "@nestjs/common";
+import { INestApplication, Provider, Type } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { AuthModule } from "@instant-games/core-auth";
 import { ProvablyFairService, PROVABLY_FAIR_SERVICE, PROVABLY_FAIR_STATE_STORE, RedisProvablyFairStateStore, PfRotationService, PF_ROTATION_SERVICE } from "@instant-games/core-provably-fair";
@@ -32,18 +32,24 @@ export interface GameTestHarness {
 export interface GameTestHarnessOptions {
   controller: Type<any>;
   service: Type<any>;
+  providers?: Provider[];
 }
 
 export async function createGameTestHarness(options: GameTestHarnessOptions): Promise<GameTestHarness> {
+  const debug = process.env.DEBUG_GAME_HARNESS === "1";
   const dbClient = await createDbClient();
   const kvStore = new InMemoryStore();
   const lockManager = new NoopLockManager();
 
+  if (debug) {
+    console.log("[game-harness] building module");
+  }
   const moduleRef = await Test.createTestingModule({
     imports: [AuthModule],
     controllers: [options.controller],
     providers: [
       options.service,
+      ...(options.providers ?? []),
       GameBetRunner,
       { provide: PROVABLY_FAIR_SERVICE, useClass: ProvablyFairService },
       {
@@ -110,8 +116,14 @@ export async function createGameTestHarness(options: GameTestHarnessOptions): Pr
     ],
   }).compile();
 
+  if (debug) {
+    console.log("[game-harness] initializing app");
+  }
   const app = moduleRef.createNestApplication();
   await app.init();
+  if (debug) {
+    console.log("[game-harness] ready");
+  }
 
   return { app, dbClient, kvStore };
 }

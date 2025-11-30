@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
-    "start:dev": "ts-node --transpile-only src/main.ts"
+    "start:dev": "ts-node --transpile-only -r tsconfig-paths/register src/main.ts"
   },
   "dependencies": {
     "@instant-games/game-math-dice": "workspace:*",

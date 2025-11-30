@@ -4,7 +4,13 @@ import { DiceMathEngine } from "@instant-games/game-math-dice";
 import { CoinFlipMathEngine } from "@instant-games/game-math-coinflip";
 import { RouletteMathEngine } from "@instant-games/game-math-roulette";
 import { MinesMathEngine } from "@instant-games/game-math-mines";
-import { HiloMathEngine, type HiloMathConfig, type HiloChoice } from "@instant-games/game-math-hilo";
+import {
+  applyGuess as applyHiloGuess,
+  startRound as startHiloRound,
+  type Card as HiloCard,
+  type GuessDirection as HiloGuessDirection,
+  type HiloConfig,
+} from "@instant-games/game-math-hilo";
 import { PlinkoMathEngine } from "@instant-games/game-math-plinko";
 import { WheelMathEngine } from "@instant-games/game-math-wheel";
 import { KenoMathEngine } from "@instant-games/game-math-keno";
@@ -338,46 +344,47 @@ async function runMinesSim(options: MinesSimOptions) {
 }
 
 async function runHiloSim(options: HiloSimOptions) {
-  const mathConfig: HiloMathConfig = {
-    mathVersion: "sim",
-    houseEdge: options.houseEdge,
-    minRank: options.minRank,
-    maxRank: options.maxRank,
-    maxMultiplier: options.maxMultiplier,
+  const multiplier = computeHiloMultiplier(options.houseEdge);
+  const config: HiloConfig = {
+    maxSteps: 1,
+    multipliers: [multiplier],
   };
-  const engine = new HiloMathEngine(mathConfig);
-  const normalizedChoice = options.choice.trim().toUpperCase() as HiloChoice;
+  const direction = normalizeHiloDirection(options.choice);
 
   let totalBet = BigInt(0);
   let totalPayout = BigInt(0);
   let wins = 0;
 
   for (let i = 0; i < options.rounds; i++) {
-    const rngValue = Math.random();
-    const result = engine.evaluate({
-      ctx: { ...SIM_CONTEXT, game: "hilo" as GameName },
-      betAmount: options.bet,
-      payload: { currentRank: options.currentRank, choice: normalizedChoice },
-      rng: () => rngValue,
-    });
+    const deck = buildSimDeck(options.currentRank);
+    const state = startHiloRound(deck, Number(options.bet), config);
+    const outcome = applyHiloGuess(state, direction, config);
     totalBet += options.bet;
-    totalPayout += result.payout;
-    if (result.metadata.win === true) wins += 1;
+    if (outcome.result === "win") {
+      totalPayout += applyMultiplier(options.bet, multiplier);
+      wins += 1;
+    }
   }
 
   const rtp = calculateRTP(totalPayout, totalBet);
 
-  console.log(JSON.stringify({
-    game: "hilo",
-    rounds: options.rounds,
-    totalBet: totalBet.toString(),
-    totalPayout: totalPayout.toString(),
-    rtp,
-    winRate: wins / options.rounds,
-    currentRank: options.currentRank,
-    choice: normalizedChoice,
-    houseEdge: options.houseEdge,
-  }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        game: "hilo",
+        rounds: options.rounds,
+        totalBet: totalBet.toString(),
+        totalPayout: totalPayout.toString(),
+        rtp,
+        winRate: wins / options.rounds,
+        currentRank: options.currentRank,
+        choice: direction,
+        houseEdge: options.houseEdge,
+      },
+      null,
+      2,
+    ),
+  );
 }
 
 async function runPlinkoSim(options: PlinkoSimOptions) {
@@ -475,6 +482,40 @@ async function runKenoSim(options: KenoSimOptions) {
     winRate: wins / options.rounds,
     picks: options.picks,
   }, null, 2));
+}
+
+function computeHiloMultiplier(houseEdge: number): number {
+  const edgeFactor = 1 - (Number.isFinite(houseEdge) ? houseEdge : 0) / 100;
+  return Number((2 * Math.max(edgeFactor, 0.01)).toFixed(4));
+}
+
+function normalizeHiloDirection(direction: string): HiloGuessDirection {
+  const normalized = (direction ?? "higher").trim().toLowerCase();
+  return normalized === "lower" ? "lower" : "higher";
+}
+
+function buildSimDeck(currentRank: number): HiloCard[] {
+  const rank = clampRank(currentRank);
+  const nextRank = randomInt(2, 15);
+  return [
+    { rank, suit: randomSuit() },
+    { rank: nextRank, suit: randomSuit() },
+    { rank: clampRank(rank + 1), suit: randomSuit() },
+  ];
+}
+
+function clampRank(rank: number): number {
+  return Math.max(2, Math.min(14, Math.trunc(rank)));
+}
+
+function randomSuit(): HiloCard["suit"] {
+  const suits: HiloCard["suit"][] = ["clubs", "diamonds", "hearts", "spades"];
+  return suits[randomInt(0, suits.length)];
+}
+
+function applyMultiplier(amount: bigint, multiplier: number): bigint {
+  const scaled = BigInt(Math.round(multiplier * Number(10_000)));
+  return (amount * scaled) / BigInt(10_000);
 }
 
 void main();

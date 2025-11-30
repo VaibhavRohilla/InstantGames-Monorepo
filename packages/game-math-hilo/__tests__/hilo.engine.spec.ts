@@ -1,88 +1,133 @@
 import { describe, expect, it } from "vitest";
-import type { GameBetContext } from "@instant-games/core-game-slice";
-import { HiloMathEngine, type HiloMathConfig } from "../src";
+import {
+  applyGuess,
+  compareCards,
+  getCashoutAmount,
+  markCashout,
+  startRound,
+  type Card,
+  type HiloConfig,
+} from "../src";
 
-const ctx: GameBetContext = {
-  operatorId: "op",
-  userId: "user",
-  currency: "USD",
-  mode: "demo",
-  game: "hilo",
+const baseConfig: HiloConfig = {
+  maxSteps: 3,
+  multipliers: [1.5, 2.5, 4],
 };
 
-const baseConfig: HiloMathConfig = {
-  mathVersion: "v1",
-  houseEdge: 1,
-  minRank: 1,
-  maxRank: 13,
-};
+const sampleDeck: Card[] = [
+  { rank: 6, suit: "clubs" },
+  { rank: 9, suit: "diamonds" },
+  { rank: 3, suit: "spades" },
+  { rank: 8, suit: "hearts" },
+];
 
-describe("HiloMathEngine", () => {
-  it("produces deterministic results for identical RNG", () => {
-    const engine = new HiloMathEngine(baseConfig);
-    const betAmount = BigInt(1_000);
-    const payload = { currentRank: 7, choice: "HIGHER" };
-    const rngValue = 0.42;
-
-    const first = engine.evaluate({ ctx, betAmount, payload, rng: () => rngValue });
-    const second = engine.evaluate({ ctx, betAmount, payload, rng: () => rngValue });
-
-    expect(second).toStrictEqual(first);
+describe("game-math-hilo engine", () => {
+  it("initializes state with the first card and base values", () => {
+    const state = startRound(sampleDeck, 100, baseConfig);
+    expect(state.currentCard).toEqual(sampleDeck[0]);
+    expect(state.cursor).toBe(0);
+    expect(state.step).toBe(0);
+    expect(state.totalMultiplier).toBe(1);
+    expect(state.finished).toBe(false);
   });
 
-  it("rejects impossible bets at the bounds", () => {
-    const engine = new HiloMathEngine(baseConfig);
-    const betAmount = BigInt(100);
+  it("progresses through deck and updates multipliers on wins", () => {
+    let state = startRound(sampleDeck, 200, baseConfig);
 
-    expect(() =>
-      engine.evaluate({ ctx, betAmount, payload: { currentRank: 13, choice: "HIGHER" }, rng: () => 0.1 }),
-    ).toThrow(/HIGHER/);
-    expect(() =>
-      engine.evaluate({ ctx, betAmount, payload: { currentRank: 1, choice: "LOWER" }, rng: () => 0.1 }),
-    ).toThrow(/LOWER/);
+    const first = applyGuess(state, "higher", baseConfig);
+    expect(first.result).toBe("win");
+    expect(first.step).toBe(1);
+    expect(first.totalMultiplier).toBe(baseConfig.multipliers[0]);
+    expect(first.state.finished).toBe(false);
+    expect(first.nextCard).toEqual(sampleDeck[1]);
+
+    const second = applyGuess(first.state, "lower", baseConfig);
+    expect(second.result).toBe("win");
+    expect(second.step).toBe(2);
+    expect(second.totalMultiplier).toBe(baseConfig.multipliers[1]);
+    expect(second.state.currentCard).toEqual(sampleDeck[2]);
+
+    const cashoutAmount = getCashoutAmount(second.state);
+    expect(cashoutAmount).toBe(200 * baseConfig.multipliers[1]);
+
+    const third = applyGuess(second.state, "lower", baseConfig);
+    expect(third.result).toBe("lose");
+    expect(third.step).toBe(2);
+    expect(third.totalMultiplier).toBe(baseConfig.multipliers[1]);
+    expect(third.state.finished).toBe(true);
   });
 
-  it("returns ~100% RTP when house edge is zero", () => {
-    const config: HiloMathConfig = { ...baseConfig, houseEdge: 0 };
-    const payload = { currentRank: 7, choice: "HIGHER" };
-    const betAmount = BigInt(10_000);
-
-    const rtp = computeExpectedRtp(config, payload, betAmount);
-    expect(rtp).toBeCloseTo(1, 4);
+  it("detects same-rank scenarios using suit tiebreakers", () => {
+    const deck: Card[] = [
+      { rank: 7, suit: "clubs" },
+      { rank: 7, suit: "spades" },
+      { rank: 4, suit: "diamonds" },
+    ];
+    const state = startRound(deck, 50, baseConfig);
+    const outcome = applyGuess(state, "higher", baseConfig);
+    expect(outcome.result).toBe("win");
+    expect(outcome.sameRankDifferentSuit).toBe(true);
   });
 
-  it("returns <100% RTP when house edge is positive", () => {
-    const config: HiloMathConfig = { ...baseConfig, houseEdge: 1.5 };
-    const payload = { currentRank: 8, choice: "LOWER" };
-    const betAmount = BigInt(10_000);
+  it("respects custom suit ordering", () => {
+    const customConfig: HiloConfig = {
+      ...baseConfig,
+      suitOrder: ["spades", "hearts", "diamonds", "clubs"],
+    };
+    const deck: Card[] = [
+      { rank: 10, suit: "spades" },
+      { rank: 10, suit: "clubs" },
+    ];
+    const state = startRound(deck, 25, customConfig);
+    const outcome = applyGuess(state, "higher", customConfig);
+    expect(outcome.result).toBe("win");
+    expect(outcome.sameRankDifferentSuit).toBe(true);
+  });
 
-    const rtp = computeExpectedRtp(config, payload, betAmount);
-    expect(rtp).toBeLessThan(1);
-    expect(rtp).toBeCloseTo(0.985, 2);
+  it("caps progress at maxSteps and disallows further guesses", () => {
+    const cappedConfig: HiloConfig = { maxSteps: 2, multipliers: [2, 3] };
+    const deck: Card[] = [
+      { rank: 5, suit: "clubs" },
+      { rank: 6, suit: "diamonds" },
+      { rank: 8, suit: "hearts" },
+    ];
+    const state = startRound(deck, 75, cappedConfig);
+    const first = applyGuess(state, "higher", cappedConfig);
+    const second = applyGuess(first.state, "higher", cappedConfig);
+    expect(second.state.finished).toBe(true);
+    expect(() => applyGuess(second.state, "higher", cappedConfig)).toThrow(/finished/);
+  });
+
+  it("throws when the deck runs out of cards", () => {
+    const shortDeck: Card[] = [
+      { rank: 2, suit: "clubs" },
+      { rank: 3, suit: "hearts" },
+    ];
+    const state = startRound(shortDeck, 10, baseConfig);
+    const first = applyGuess(state, "higher", baseConfig);
+    expect(() => applyGuess(first.state, "higher", baseConfig)).toThrow(/deck/);
+  });
+
+  it("marks cashout without mutating multiplier state", () => {
+    const state = startRound(sampleDeck, 100, baseConfig);
+    const win = applyGuess(state, "higher", baseConfig);
+    const cashed = markCashout(win.state);
+    expect(cashed.finished).toBe(true);
+    expect(cashed.totalMultiplier).toBe(win.totalMultiplier);
+  });
+
+  it("compareCards reports suit-aware ordering", () => {
+    const lower: Card = { rank: 9, suit: "diamonds" };
+    const higher: Card = { rank: 11, suit: "clubs" };
+    expect(compareCards(higher, lower).cmp).toBe(1);
+
+    const suitWin = compareCards(
+      { rank: 5, suit: "spades" },
+      { rank: 5, suit: "clubs" },
+      { suitOrder: ["clubs", "diamonds", "hearts", "spades"] },
+    );
+    expect(suitWin.cmp).toBe(1);
+    expect(suitWin.sameRankDifferentSuit).toBe(true);
   });
 });
-
-function computeExpectedRtp(
-  config: HiloMathConfig,
-  payload: { currentRank: number; choice: "HIGHER" | "LOWER" },
-  betAmount: bigint,
-): number {
-  const engine = new HiloMathEngine(config);
-  const totalOutcomes = config.maxRank - config.minRank + 1;
-  let expectedPayout = 0;
-
-  for (let rank = config.minRank; rank <= config.maxRank; rank += 1) {
-    const idx = rank - config.minRank;
-    const rngValue = (idx + 0.5) / totalOutcomes;
-    const result = engine.evaluate({
-      ctx,
-      betAmount,
-      payload,
-      rng: () => rngValue,
-    });
-    expectedPayout += Number(result.payout) / totalOutcomes;
-  }
-
-  return expectedPayout / Number(betAmount);
-}
 

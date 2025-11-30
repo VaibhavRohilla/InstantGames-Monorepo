@@ -4,6 +4,7 @@ import { IDbClient } from "@instant-games/core-db";
 import { IKeyValueStore, ILockManager, deserializeFromRedis, serializeForRedis } from "@instant-games/core-redis";
 import { ILogger } from "@instant-games/core-logging";
 import { IMetrics } from "@instant-games/core-metrics";
+import { GameMode } from "@instant-games/core-types";
 
 export class InMemoryStore implements IKeyValueStore {
   private store = new Map<string, string>();
@@ -50,12 +51,6 @@ export class NoopMetrics implements IMetrics {
   observe(): void {}
 }
 
-/**
- * Default JWT secret for test environments
- * This should match the AUTH_JWT_SECRET used in tests
- */
-export const TEST_JWT_SECRET = "test-jwt-secret-for-development-only";
-
 export async function createDbClient(): Promise<IDbClient> {
   const db = newDb({ autoCreateForeignKeyIndices: true });
   db.public.registerFunction({
@@ -68,6 +63,7 @@ export async function createDbClient(): Promise<IDbClient> {
     returns: DataType.uuid,
     implementation: () => randomUUID(),
   });
+
   const schemaStatements = [
     `CREATE TABLE operators (
       id TEXT PRIMARY KEY,
@@ -160,7 +156,7 @@ export async function createDbClient(): Promise<IDbClient> {
   const pool = new pg.Pool();
 
   return {
-    async query<T = any>(sql: string, params: any[] = []) {
+    async query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
       const result = await pool.query(sql, params);
       return result.rows as T[];
     },
@@ -187,3 +183,66 @@ export async function createDbClient(): Promise<IDbClient> {
     },
   };
 }
+
+export async function seedOperator(db: IDbClient, operatorId: string, name = "Test Operator"): Promise<void> {
+  await db.query(
+    `INSERT INTO operators (id, name) VALUES ($1,$2)
+     ON CONFLICT (id) DO NOTHING`,
+    [operatorId, name],
+  );
+}
+
+export interface SeedConfigParams {
+  operatorId: string;
+  game: string;
+  currency: string;
+  mode: GameMode;
+  minBet?: string;
+  maxBet?: string;
+  maxPayout?: string;
+  mathVersion?: string;
+  extra?: Record<string, unknown>;
+  enabled?: boolean;
+}
+
+export async function seedGameConfig(params: SeedConfigParams & { db: IDbClient }): Promise<void> {
+  const {
+    db,
+    operatorId,
+    game,
+    currency,
+    mode,
+    minBet = "100",
+    maxBet = "100000",
+    maxPayout = "1000000",
+    mathVersion = "v1",
+    extra = {},
+    enabled = true,
+  } = params;
+  await db.query(
+    `INSERT INTO game_configs (id, operator_id, game, currency, mode, min_bet, max_bet, max_payout_per_round, math_version, demo_enabled, real_enabled, extra)
+     VALUES (gen_random_uuid(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+     ON CONFLICT (operator_id, game, currency, mode)
+     DO UPDATE SET min_bet = EXCLUDED.min_bet,
+                   max_bet = EXCLUDED.max_bet,
+                   max_payout_per_round = EXCLUDED.max_payout_per_round,
+                   math_version = EXCLUDED.math_version,
+                   extra = EXCLUDED.extra,
+                   demo_enabled = EXCLUDED.demo_enabled,
+                   real_enabled = EXCLUDED.real_enabled`,
+    [
+      operatorId,
+      game,
+      currency,
+      mode,
+      minBet,
+      maxBet,
+      maxPayout,
+      mathVersion,
+      mode === "demo" ? enabled : true,
+      mode === "real" ? enabled : true,
+      JSON.stringify(extra),
+    ],
+  );
+}
+
