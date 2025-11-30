@@ -1,4 +1,4 @@
-import { IsIn, IsInt, IsOptional, IsString, Matches, Max, Min } from "class-validator";
+import { IsInt, IsOptional, IsString, Matches, Max, Min } from "class-validator";
 
 export class HiloBetDto {
   @IsString()
@@ -8,10 +8,11 @@ export class HiloBetDto {
   @IsInt()
   @Min(1)
   @Max(13)
-  currentCard!: number;
+  currentRank!: number;
 
-  @IsIn(["higher", "lower"])
-  choice!: "higher" | "lower";
+  @IsString()
+  @Matches(/^(higher|lower)$/i, { message: "choice must be 'higher' or 'lower'" })
+  choice!: string;
 
   @IsOptional()
   @IsString()

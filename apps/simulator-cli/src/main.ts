@@ -4,7 +4,7 @@ import { DiceMathEngine } from "@instant-games/game-math-dice";
 import { CoinFlipMathEngine } from "@instant-games/game-math-coinflip";
 import { RouletteMathEngine } from "@instant-games/game-math-roulette";
 import { MinesMathEngine } from "@instant-games/game-math-mines";
-import { HiloMathEngine } from "@instant-games/game-math-hilo";
+import { HiloMathEngine, type HiloMathConfig, type HiloChoice } from "@instant-games/game-math-hilo";
 import { PlinkoMathEngine } from "@instant-games/game-math-plinko";
 import { WheelMathEngine } from "@instant-games/game-math-wheel";
 import { KenoMathEngine } from "@instant-games/game-math-keno";
@@ -48,8 +48,12 @@ interface MinesSimOptions {
 interface HiloSimOptions {
   rounds: number;
   bet: bigint;
-  currentCard: number;
-  choice: "higher" | "lower";
+  currentRank: number;
+  choice: string;
+  houseEdge: number;
+  minRank: number;
+  maxRank: number;
+  maxMultiplier?: number;
 }
 
 interface PlinkoSimOptions {
@@ -119,11 +123,16 @@ async function main() {
       break;
     }
     case "hilo": {
+      const rawMaxMultiplier = args.maxMultiplier != null ? Number(args.maxMultiplier) : undefined;
       const options: HiloSimOptions = {
         rounds: Number(args.rounds ?? 1000),
         bet: BigInt(args.bet ?? "100"),
-        currentCard: Number(args.currentCard ?? 7),
-        choice: (args.choice as "higher" | "lower") ?? "higher",
+        currentRank: Number(args.currentRank ?? 7),
+        choice: (typeof args.choice === "string" ? args.choice : "higher") ?? "higher",
+        houseEdge: Number(args.houseEdge ?? 1),
+        minRank: Number(args.minRank ?? 1),
+        maxRank: Number(args.maxRank ?? 13),
+        maxMultiplier: rawMaxMultiplier != null && Number.isFinite(rawMaxMultiplier) ? rawMaxMultiplier : undefined,
       };
       await runHiloSim(options);
       break;
@@ -227,7 +236,10 @@ async function runDiceSim(options: DiceSimOptions) {
 }
 
 async function runCoinFlipSim(options: CoinFlipSimOptions) {
-  const engine = new CoinFlipMathEngine();
+  const engine = new CoinFlipMathEngine({
+    mathVersion: "sim",
+    houseEdge: 1,
+  });
 
   let totalBet = BigInt(0);
   let totalPayout = BigInt(0);
@@ -326,7 +338,15 @@ async function runMinesSim(options: MinesSimOptions) {
 }
 
 async function runHiloSim(options: HiloSimOptions) {
-  const engine = new HiloMathEngine();
+  const mathConfig: HiloMathConfig = {
+    mathVersion: "sim",
+    houseEdge: options.houseEdge,
+    minRank: options.minRank,
+    maxRank: options.maxRank,
+    maxMultiplier: options.maxMultiplier,
+  };
+  const engine = new HiloMathEngine(mathConfig);
+  const normalizedChoice = options.choice.trim().toUpperCase() as HiloChoice;
 
   let totalBet = BigInt(0);
   let totalPayout = BigInt(0);
@@ -337,7 +357,7 @@ async function runHiloSim(options: HiloSimOptions) {
     const result = engine.evaluate({
       ctx: { ...SIM_CONTEXT, game: "hilo" as GameName },
       betAmount: options.bet,
-      payload: { currentCard: options.currentCard, choice: options.choice },
+      payload: { currentRank: options.currentRank, choice: normalizedChoice },
       rng: () => rngValue,
     });
     totalBet += options.bet;
@@ -354,8 +374,9 @@ async function runHiloSim(options: HiloSimOptions) {
     totalPayout: totalPayout.toString(),
     rtp,
     winRate: wins / options.rounds,
-    currentCard: options.currentCard,
-    choice: options.choice,
+    currentRank: options.currentRank,
+    choice: normalizedChoice,
+    houseEdge: options.houseEdge,
   }, null, 2));
 }
 

@@ -10,7 +10,7 @@ registerGameE2ESuite({
   service: HiloService,
   buildBetBody: () => ({
     betAmount: "120",
-    currentCard: 7,
+    currentRank: 7,
     choice: "higher",
   }),
 });

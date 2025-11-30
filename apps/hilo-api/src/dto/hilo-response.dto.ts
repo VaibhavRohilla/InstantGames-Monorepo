@@ -1,10 +1,20 @@
+import { HiloChoice } from "@instant-games/game-math-hilo";
+
 export interface HiloBetResponse {
   roundId: string;
   betAmount: string;
-  payout: string;
+  payoutAmount: string;
   currency: string;
-  result: "WIN" | "LOSE";
-  metadata: Record<string, unknown>;
+  currentRank: number;
+  drawnRank: number;
+  choice: HiloChoice;
+  isWin: boolean;
+  winAmount: number;
+  payoutMultiplier: number;
+  serverSeedHash: string;
+  clientSeed: string;
+  nonce: number;
+  mathVersion: string;
   createdAt: string;
 }
 

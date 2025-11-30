@@ -20,7 +20,7 @@ pnpm --filter @instant-games/simulator-cli start:dev -- roulette --rounds 10000 
 pnpm --filter @instant-games/simulator-cli start:dev -- mines --rounds 10000 --bet 1000 --cell 0
 
 # Hilo
-pnpm --filter @instant-games/simulator-cli start:dev -- hilo --rounds 10000 --bet 1000 --currentCard 7 --choice higher
+pnpm --filter @instant-games/simulator-cli start:dev -- hilo --rounds 10000 --bet 1000 --currentRank 7 --choice higher --houseEdge 1
 
 # Plinko
 pnpm --filter @instant-games/simulator-cli start:dev -- plinko --rounds 10000 --bet 1000
@@ -92,11 +92,15 @@ Cell reveal game.
 
 ### 5. Hilo
 
-Card prediction (higher/lower).
+Card rank prediction (higher/lower).
 
 **Parameters:**
-- `--currentCard`: Current card value 1-13 (default: 7)
+- `--currentRank`: Current rank value between `minRank` and `maxRank` (default: 7)
 - `--choice`: "higher" or "lower" (default: "higher")
+- `--houseEdge`: Target house edge percentage (default: 1)
+- `--minRank`: Minimum rank in deck (default: 1)
+- `--maxRank`: Maximum rank in deck (default: 13)
+- `--maxMultiplier`: Optional cap on payouts (no cap by default)
 
 ### 6. Plinko
 
@@ -158,7 +162,7 @@ pnpm --filter @instant-games/simulator-cli start:dev -- dice --rounds 1000 --bet
 pnpm --filter @instant-games/simulator-cli start:dev -- coinflip --rounds 1000 --bet 1000 --choice heads
 pnpm --filter @instant-games/simulator-cli start:dev -- roulette --rounds 1000 --bet 1000 --selection 5
 pnpm --filter @instant-games/simulator-cli start:dev -- mines --rounds 1000 --bet 1000 --cell 0
-pnpm --filter @instant-games/simulator-cli start:dev -- hilo --rounds 1000 --bet 1000 --currentCard 7 --choice higher
+pnpm --filter @instant-games/simulator-cli start:dev -- hilo --rounds 1000 --bet 1000 --currentRank 7 --choice higher --houseEdge 1
 pnpm --filter @instant-games/simulator-cli start:dev -- plinko --rounds 1000 --bet 1000
 pnpm --filter @instant-games/simulator-cli start:dev -- wheel --rounds 1000 --bet 1000
 pnpm --filter @instant-games/simulator-cli start:dev -- keno --rounds 1000 --bet 1000 --picks 1,2,3,4,5

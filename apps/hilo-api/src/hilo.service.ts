@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { AuthContext } from "@instant-games/core-auth";
-import { GAME_CONFIG_SERVICE, IGameConfigService } from "@instant-games/core-config";
+import { GAME_CONFIG_SERVICE, GameConfig, IGameConfigService } from "@instant-games/core-config";
 import { IRngService, RNG_SERVICE } from "@instant-games/core-rng";
 import { IProvablyFairStateStore, PROVABLY_FAIR_STATE_STORE } from "@instant-games/core-provably-fair";
 import { WALLET_ROUTER, WalletRouter } from "@instant-games/core-wallet";
@@ -16,12 +16,22 @@ import { GameBetContext, GameBetRunner, GameBetRunnerResult } from "@instant-gam
 import { HiloBetDto } from "./dto/hilo-bet.dto";
 import { HiloBetResponse } from "./dto/hilo-response.dto";
 import { GameName } from "@instant-games/core-types";
-import { HiloMathEngine } from "@instant-games/game-math-hilo";
+import {
+  HiloChoice,
+  HiloEvaluationMetadata,
+  HiloMathConfig,
+  HiloMathEngine,
+} from "@instant-games/game-math-hilo";
 
 const GAME: GameName = "hilo";
+const DEFAULT_HOUSE_EDGE = 1;
+const DEFAULT_MIN_RANK = 1;
+const DEFAULT_MAX_RANK = 13;
 
 @Injectable()
 export class HiloService {
+  private readonly engineCache = new Map<string, HiloMathEngine>();
+
   constructor(
     @Inject(GAME_CONFIG_SERVICE) private readonly configService: IGameConfigService,
     @Inject(RNG_SERVICE) private readonly rng: IRngService,
@@ -39,13 +49,19 @@ export class HiloService {
   async placeBet(ctx: AuthContext, dto: HiloBetDto, idempotencyKey: string): Promise<HiloBetResponse> {
     const betAmount = BigInt(dto.betAmount);
     const betCtx: GameBetContext = { ...ctx, game: GAME };
-    const engine = new HiloMathEngine();
+    const config = await this.configService.getConfig({ ctx: betCtx, game: GAME });
+    const mathConfig = this.buildMathConfig(config);
+    const engine = this.getMathEngine(mathConfig);
+    const choice = normalizeChoice(dto.choice);
 
     const result = await this.gameBetRunner.run({
       ctx: betCtx,
       request: {
         betAmount,
-        payload: { choice: dto.choice, currentCard: dto.currentCard },
+        payload: {
+          currentRank: dto.currentRank,
+          choice,
+        },
         clientSeed: dto.clientSeed,
       },
       idempotencyKey,
@@ -62,21 +78,106 @@ export class HiloService {
       logger: this.logger,
       metrics: this.metrics,
       db: this.db,
+      preloadedConfig: config,
     });
 
-    return this.toResponse(dto, ctx.currency, result);
+    return this.toResponse(dto, choice, ctx.currency, result);
   }
 
-  private toResponse(dto: HiloBetDto, currency: string, result: GameBetRunnerResult): HiloBetResponse {
+  private getMathEngine(config: HiloMathConfig): HiloMathEngine {
+    const key = JSON.stringify(config);
+    const cached = this.engineCache.get(key);
+    if (cached) {
+      return cached;
+    }
+    const engine = new HiloMathEngine(config);
+    this.engineCache.set(key, engine);
+    return engine;
+  }
+
+  private buildMathConfig(config: GameConfig): HiloMathConfig {
+    const extra = config.extra ?? {};
+    const houseEdge = sanitizeHouseEdge(coerceNumber(extra["houseEdge"])) ?? DEFAULT_HOUSE_EDGE;
+    const maxMultiplier = coerceNumber(extra["maxMultiplier"]);
+    const minRank = coerceNumber(extra["minRank"]) ?? DEFAULT_MIN_RANK;
+    const maxRank = coerceNumber(extra["maxRank"]) ?? DEFAULT_MAX_RANK;
+
+    return {
+      mathVersion: config.mathVersion ?? "1.0.0",
+      houseEdge,
+      minRank,
+      maxRank,
+      maxMultiplier: maxMultiplier && maxMultiplier > 0 ? maxMultiplier : undefined,
+    };
+  }
+
+  private toResponse(
+    dto: HiloBetDto,
+    choice: HiloChoice,
+    currency: string,
+    result: GameBetRunnerResult,
+  ): HiloBetResponse {
+    const evaluation = (result.metadata?.evaluation ?? {}) as Partial<HiloEvaluationMetadata>;
+    const drawnRank = evaluation.drawnRank ?? dto.currentRank;
+    const isWin = evaluation.win ?? (result.result === "WIN");
+
     return {
       roundId: result.roundId,
       betAmount: dto.betAmount,
-      payout: result.payout.toString(),
+      payoutAmount: result.payout.toString(),
       currency,
-      result: result.result,
-      metadata: result.metadata ?? {},
+      currentRank: dto.currentRank,
+      drawnRank,
+      choice,
+      isWin,
+      winAmount: isWin ? Number(result.payout) : 0,
+      payoutMultiplier: evaluation.multiplier ?? 0,
+      serverSeedHash: result.pf.serverSeedHash,
+      clientSeed: result.pf.clientSeed,
+      nonce: result.pf.nonce,
+      mathVersion: result.mathVersion,
       createdAt: result.createdAt,
     };
   }
+}
+
+function normalizeChoice(value: unknown): HiloChoice {
+  if (typeof value !== "string") {
+    throw new Error("Hilo: choice is required");
+  }
+  const normalized = value.trim().toUpperCase();
+  if (normalized !== "HIGHER" && normalized !== "LOWER") {
+    throw new Error("Hilo: choice must be HIGHER or LOWER");
+  }
+  return normalized as HiloChoice;
+}
+
+function coerceNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
+function sanitizeHouseEdge(value?: number): number | undefined {
+  if (value == null) {
+    return undefined;
+  }
+  if (!Number.isFinite(value)) {
+    return undefined;
+  }
+  if (value < 0) {
+    return 0;
+  }
+  if (value >= 100) {
+    return 99.99;
+  }
+  return value;
 }
 
