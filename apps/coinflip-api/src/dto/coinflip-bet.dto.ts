@@ -1,15 +1,15 @@
-import { IsIn, IsOptional, IsString, Matches } from "class-validator";
+import { IsOptional, IsString, Matches } from "class-validator";
 
 export class CoinflipBetDto {
   @IsString()
   @Matches(/^(?!0+$)\d+$/, { message: "betAmount must be a positive integer string" })
   betAmount!: string;
 
-  @IsIn(["heads", "tails"])
-  choice!: "heads" | "tails";
+  @IsString()
+  @Matches(/^(heads|tails)$/i, { message: "side must be 'heads' or 'tails'" })
+  side!: string;
 
   @IsOptional()
   @IsString()
   clientSeed?: string;
 }
-

@@ -3,6 +3,7 @@ import { Type } from "class-transformer";
 import { IsInt, IsISO8601, IsOptional, IsString, Min } from "class-validator";
 import { AdminAuthGuard } from "../auth/admin-auth.guard";
 import { LedgerEntryDto, LedgerService } from "../services/ledger.service";
+import { GameName } from "@instant-games/core-types";
 
 class LedgerQueryDto {
   @IsString()
@@ -49,7 +50,7 @@ export class LedgerController {
     return this.ledgerService.list({
       operatorId: query.operatorId,
       userId: query.userId,
-      game: query.game as any,
+      game: query.game as GameName,
       roundId: query.roundId,
       type: query.type,
       startTime: query.startTime ? new Date(query.startTime) : undefined,

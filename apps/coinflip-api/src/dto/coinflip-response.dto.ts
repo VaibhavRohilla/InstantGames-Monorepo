@@ -1,10 +1,18 @@
+import { CoinFlipSide } from "@instant-games/game-math-coinflip";
+
 export interface CoinflipBetResponse {
   roundId: string;
   betAmount: string;
-  payout: string;
+  payoutAmount: string;
   currency: string;
-  result: "WIN" | "LOSE";
-  metadata: Record<string, unknown>;
+  pickedSide: CoinFlipSide;
+  outcome: CoinFlipSide;
+  isWin: boolean;
+  winAmount: number;
+  payoutMultiplier: number;
+  serverSeedHash: string;
+  clientSeed: string;
+  nonce: number;
+  mathVersion: string;
   createdAt: string;
 }
-

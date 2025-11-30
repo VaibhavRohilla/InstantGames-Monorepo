@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { AuthContext } from "@instant-games/core-auth";
-import { GAME_CONFIG_SERVICE, IGameConfigService } from "@instant-games/core-config";
+import { GAME_CONFIG_SERVICE, GameConfig, IGameConfigService } from "@instant-games/core-config";
 import { IRngService, RNG_SERVICE } from "@instant-games/core-rng";
 import { IProvablyFairStateStore, PROVABLY_FAIR_STATE_STORE } from "@instant-games/core-provably-fair";
 import { WALLET_ROUTER, WalletRouter } from "@instant-games/core-wallet";
@@ -16,12 +16,20 @@ import { GameBetContext, GameBetRunner, GameBetRunnerResult } from "@instant-gam
 import { CoinflipBetDto } from "./dto/coinflip-bet.dto";
 import { CoinflipBetResponse } from "./dto/coinflip-response.dto";
 import { GameName } from "@instant-games/core-types";
-import { CoinFlipMathEngine } from "@instant-games/game-math-coinflip";
+import {
+  CoinFlipEvaluationMetadata,
+  CoinFlipMathConfig,
+  CoinFlipMathEngine,
+  CoinFlipSide,
+} from "@instant-games/game-math-coinflip";
 
 const GAME: GameName = "coinflip";
+const DEFAULT_HOUSE_EDGE = 1;
 
 @Injectable()
 export class CoinflipService {
+  private readonly engineCache = new Map<string, CoinFlipMathEngine>();
+
   constructor(
     @Inject(GAME_CONFIG_SERVICE) private readonly configService: IGameConfigService,
     @Inject(RNG_SERVICE) private readonly rng: IRngService,
@@ -39,13 +47,16 @@ export class CoinflipService {
   async placeBet(ctx: AuthContext, dto: CoinflipBetDto, idempotencyKey: string): Promise<CoinflipBetResponse> {
     const betAmount = BigInt(dto.betAmount);
     const betCtx: GameBetContext = { ...ctx, game: GAME };
-    const engine = new CoinFlipMathEngine();
+    const config = await this.configService.getConfig({ ctx: betCtx, game: GAME });
+    const mathConfig = this.buildMathConfig(config);
+    const engine = this.getMathEngine(mathConfig);
+    const pickedSide = normalizeSide(dto.side);
 
     const result = await this.gameBetRunner.run({
       ctx: betCtx,
       request: {
         betAmount,
-        payload: { choice: dto.choice },
+        payload: { side: pickedSide },
         clientSeed: dto.clientSeed,
       },
       idempotencyKey,
@@ -62,21 +73,94 @@ export class CoinflipService {
       logger: this.logger,
       metrics: this.metrics,
       db: this.db,
+      preloadedConfig: config,
     });
 
-    return this.toResponse(dto, ctx.currency, result);
+    return this.toResponse(dto.betAmount, pickedSide, ctx.currency, result);
   }
 
-  private toResponse(dto: CoinflipBetDto, currency: string, result: GameBetRunnerResult): CoinflipBetResponse {
+  private getMathEngine(config: CoinFlipMathConfig): CoinFlipMathEngine {
+    const cacheKey = JSON.stringify(config);
+    const cached = this.engineCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+    const engine = new CoinFlipMathEngine(config);
+    this.engineCache.set(cacheKey, engine);
+    return engine;
+  }
+
+  private buildMathConfig(config: GameConfig): CoinFlipMathConfig {
+    const extra = config.extra ?? {};
+    const houseEdge = sanitizeHouseEdge(coerceNumber(extra["houseEdge"])) ?? DEFAULT_HOUSE_EDGE;
+    const maxMultiplier = coerceNumber(extra["maxMultiplier"]);
+    return {
+      mathVersion: config.mathVersion,
+      houseEdge,
+      maxMultiplier: maxMultiplier && maxMultiplier > 0 ? maxMultiplier : undefined,
+    };
+  }
+
+  private toResponse(
+    betAmount: string,
+    pickedSide: CoinFlipSide,
+    currency: string,
+    result: GameBetRunnerResult,
+  ): CoinflipBetResponse {
+    const evaluation = (result.metadata?.evaluation ?? {}) as Partial<CoinFlipEvaluationMetadata>;
+    const outcome = evaluation.outcome ?? pickedSide;
+    const isWin = evaluation.win ?? (result.result === "WIN");
+
     return {
       roundId: result.roundId,
-      betAmount: dto.betAmount,
-      payout: result.payout.toString(),
+      betAmount,
+      payoutAmount: result.payout.toString(),
       currency,
-      result: result.result,
-      metadata: result.metadata ?? {},
+      pickedSide,
+      outcome,
+      isWin,
+      winAmount: isWin ? Number(result.payout) : 0,
+      payoutMultiplier: evaluation.multiplier ?? 0,
+      serverSeedHash: result.pf.serverSeedHash,
+      clientSeed: result.pf.clientSeed,
+      nonce: result.pf.nonce,
+      mathVersion: result.mathVersion,
       createdAt: result.createdAt,
     };
   }
+}
+
+function normalizeSide(value: unknown): CoinFlipSide {
+  if (typeof value !== "string") {
+    throw new Error("CoinFlip: side is required");
+  }
+  const normalized = value.trim().toUpperCase();
+  if (normalized !== "HEADS" && normalized !== "TAILS") {
+    throw new Error("CoinFlip: side must be HEADS or TAILS");
+  }
+  return normalized as CoinFlipSide;
+}
+
+function coerceNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+}
+
+function sanitizeHouseEdge(value: number | undefined): number | undefined {
+  if (value == null) {
+    return undefined;
+  }
+  if (value < 0 || value >= 100) {
+    throw new Error("CoinFlip: houseEdge must be between 0 (inclusive) and 100 (exclusive)");
+  }
+  return value;
 }
 

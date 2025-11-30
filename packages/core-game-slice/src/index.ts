@@ -36,6 +36,15 @@ export interface GameMathEvaluationInput {
   betAmount: bigint;
   payload: Record<string, unknown>;
   rng: () => number;
+  /**
+   * Optional provably-fair context exposed for logging/auditing only.
+   * Engines must rely on the provided rng() and never derive their own randomness.
+   */
+  pf?: {
+    serverSeed: string;
+    clientSeed: string;
+    nonce: number;
+  };
 }
 
 export interface GameMathMaxPayoutInput {
@@ -218,7 +227,17 @@ export class GameBetRunner {
         return rngService.rollFloat(pfContext!, nonce);
       };
 
-      evaluation = mathEngine.evaluate({ ctx, betAmount, payload, rng });
+      evaluation = mathEngine.evaluate({
+        ctx,
+        betAmount,
+        payload,
+        rng,
+        pf: {
+          serverSeed: pfContext!.serverSeed,
+          clientSeed: pfContext!.clientSeed,
+          nonce,
+        },
+      });
 
       if (evaluation.payout > BigInt(0)) {
         await wallet.credit(scopedUserId, evaluation.payout, ctx.currency, ctx.mode);

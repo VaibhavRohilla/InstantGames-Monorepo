@@ -10,7 +10,7 @@ registerGameE2ESuite({
   service: CoinflipService,
   buildBetBody: () => ({
     betAmount: "140",
-    choice: "heads",
+    side: "heads",
   }),
 });
 
