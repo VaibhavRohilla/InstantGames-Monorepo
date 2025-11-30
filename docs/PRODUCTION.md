@@ -4,16 +4,16 @@ Complete assessment of production readiness for games, wallet, and RNG certifica
 
 ## Game Production Status
 
-| Game | Production Ready? | RNG Certified Ready? | Notes |
-|------|-------------------|---------------------|-------|
-| **Dice** | ✅ **YES** | ✅ **YES** | Full implementation with proper math, house edge, validation |
-| **CoinFlip** | ❌ NO | ⚠️ Partially | Stub implementation - needs proper math |
-| **Roulette** | ❌ NO | ⚠️ Partially | Stub implementation - needs proper math |
-| **Mines** | ❌ NO | ⚠️ Partially | Stub implementation - needs proper math |
-| **Hilo** | ❌ NO | ⚠️ Partially | Stub implementation - needs proper math |
-| **Plinko** | ❌ NO | ⚠️ Partially | Stub implementation - needs proper math |
-| **Wheel** | ❌ NO | ⚠️ Partially | Stub implementation - needs proper math |
-| **Keno** | ❌ NO | ⚠️ Partially | Stub implementation - needs proper math |
+| Game      | Production Ready? | RNG Certified Ready? | Notes                                                               |
+|--------------|---------------|----------------------|----------------------------------------------------------------------|
+| **Dice**     | ✅ **YES**    | ✅ **YES**          | Full implementation with proper math, house edge, validation         |
+| **CoinFlip** | ✅ **YES**    |  ✅ **YES**         |  Full implementation with proper math, house edge, validation        |
+| **Roulette** | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
+| **Mines**    | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
+| **Hilo**     | ⚠️ **YES**    | ⚠️ **YES**          | fully done but edges cases such as chain game + equal rank detection |
+| **Plinko**   | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
+| **Wheel**    | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
+| **Keno**     | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
 
 ## Dice (Production-Ready ✅)
 
