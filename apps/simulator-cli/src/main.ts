@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { randomInt } from "crypto";
 import { DiceMathEngine } from "@instant-games/game-math-dice";
-import { CoinFlipMathEngine } from "@instant-games/game-math-coinflip";
+import { CoinFlipMathEngine, CoinFlipSide } from "@instant-games/game-math-coinflip";
 import { RouletteMathEngine } from "@instant-games/game-math-roulette";
 import { MinesMathEngine } from "@instant-games/game-math-mines";
 import {
@@ -36,7 +36,9 @@ interface DiceSimOptions {
 interface CoinFlipSimOptions {
   rounds: number;
   bet: bigint;
-  choice: "heads" | "tails";
+  side: CoinFlipSide;
+  houseEdge: number;
+  maxMultiplier?: number;
 }
 
 interface RouletteSimOptions {
@@ -102,10 +104,18 @@ async function main() {
       break;
     }
     case "coinflip": {
+      const rawSide = typeof args.side === "string" ? args.side : typeof args.choice === "string" ? args.choice : "heads";
+      const parsedHouseEdge = Number(args.houseEdge ?? 1);
+      const parsedMaxMultiplier = args.maxMultiplier != null ? Number(args.maxMultiplier) : undefined;
       const options: CoinFlipSimOptions = {
         rounds: Number(args.rounds ?? 1000),
         bet: BigInt(args.bet ?? "100"),
-        choice: (args.choice as "heads" | "tails") ?? "heads",
+        side: normalizeCoinflipSide(rawSide),
+        houseEdge: Number.isFinite(parsedHouseEdge) ? parsedHouseEdge : 1,
+        maxMultiplier:
+          parsedMaxMultiplier != null && Number.isFinite(parsedMaxMultiplier) && parsedMaxMultiplier > 0
+            ? parsedMaxMultiplier
+            : undefined,
       };
       await runCoinFlipSim(options);
       break;
@@ -244,7 +254,8 @@ async function runDiceSim(options: DiceSimOptions) {
 async function runCoinFlipSim(options: CoinFlipSimOptions) {
   const engine = new CoinFlipMathEngine({
     mathVersion: "sim",
-    houseEdge: 1,
+    houseEdge: options.houseEdge,
+    maxMultiplier: options.maxMultiplier,
   });
 
   let totalBet = BigInt(0);
@@ -256,7 +267,7 @@ async function runCoinFlipSim(options: CoinFlipSimOptions) {
     const result = engine.evaluate({
       ctx: { ...SIM_CONTEXT, game: "coinflip" as GameName },
       betAmount: options.bet,
-      payload: { choice: options.choice },
+      payload: { side: options.side },
       rng: () => rngValue,
     });
     totalBet += options.bet;
@@ -273,7 +284,9 @@ async function runCoinFlipSim(options: CoinFlipSimOptions) {
     totalPayout: totalPayout.toString(),
     rtp,
     winRate: wins / options.rounds,
-    choice: options.choice,
+    side: options.side.toLowerCase(),
+    houseEdge: options.houseEdge,
+    ...(options.maxMultiplier ? { maxMultiplier: options.maxMultiplier } : {}),
   }, null, 2));
 }
 
@@ -511,6 +524,11 @@ function clampRank(rank: number): number {
 function randomSuit(): HiloCard["suit"] {
   const suits: HiloCard["suit"][] = ["clubs", "diamonds", "hearts", "spades"];
   return suits[randomInt(0, suits.length)];
+}
+
+function normalizeCoinflipSide(side: string | undefined): CoinFlipSide {
+  const normalized = (side ?? "heads").trim().toUpperCase();
+  return normalized === "TAILS" ? "TAILS" : "HEADS";
 }
 
 function applyMultiplier(amount: bigint, multiplier: number): bigint {

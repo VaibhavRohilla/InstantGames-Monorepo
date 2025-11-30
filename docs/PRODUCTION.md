@@ -7,13 +7,13 @@ Complete assessment of production readiness for games, wallet, and RNG certifica
 | Game      | Production Ready? | RNG Certified Ready? | Notes                                                               |
 |--------------|---------------|----------------------|----------------------------------------------------------------------|
 | **Dice**     | ✅ **YES**    | ✅ **YES**          | Full implementation with proper math, house edge, validation         |
-| **CoinFlip** | ✅ **YES**    |  ✅ **YES**         |  Full implementation with proper math, house edge, validation        |
-| **Roulette** | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
-| **Mines**    | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
+| **CoinFlip** | ✅ **YES**    | ✅ **YES**          |  Full implementation with proper math, house edge, validation        |
 | **Hilo**     | ✅ **YES**    | ✅ **YES**          | Multi-step orchestration with PF deck, wallet safety, Redis state    |
+| **Roulette** | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
 | **Plinko**   | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
 | **Wheel**    | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
 | **Keno**     | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
+| **Mines**    | ❌ NO         | ⚠️ Partially        | Stub implementation - needs proper math                              |
 
 ## Dice (Production-Ready ✅)
 

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable } from "@nestjs/common";
 import { AuthContext } from "@instant-games/core-auth";
 import { GAME_CONFIG_SERVICE, GameConfig, IGameConfigService } from "@instant-games/core-config";
 import { IRngService, RNG_SERVICE } from "@instant-games/core-rng";
@@ -76,6 +76,9 @@ export class CoinflipService {
       preloadedConfig: config,
     });
 
+    this.recordMetrics(betCtx, result);
+    this.logRound(betCtx, pickedSide, result);
+
     return this.toResponse(dto.betAmount, pickedSide, ctx.currency, result);
   }
 
@@ -107,7 +110,7 @@ export class CoinflipService {
     currency: string,
     result: GameBetRunnerResult,
   ): CoinflipBetResponse {
-    const evaluation = (result.metadata?.evaluation ?? {}) as Partial<CoinFlipEvaluationMetadata>;
+    const evaluation = this.getEvaluationMetadata(result);
     const outcome = evaluation.outcome ?? pickedSide;
     const isWin = evaluation.win ?? (result.result === "WIN");
 
@@ -128,15 +131,70 @@ export class CoinflipService {
       createdAt: result.createdAt,
     };
   }
+
+  private recordMetrics(ctx: GameBetContext, result: GameBetRunnerResult): void {
+    const labels = this.metricLabels(ctx);
+    this.metrics.increment("coinflip_bets_total", { ...labels, outcome: result.result.toLowerCase() });
+    if (result.result === "WIN") {
+      this.metrics.increment("coinflip_wins_total", labels);
+    } else {
+      this.metrics.increment("coinflip_losses_total", labels);
+    }
+
+    const betAmountNumber = Number(result.betAmount);
+    if (betAmountNumber > 0 && Number.isFinite(betAmountNumber)) {
+      this.metrics.observe("coinflip_bet_amount", betAmountNumber, labels);
+      const ratio = Number(result.payout) / betAmountNumber;
+      this.metrics.observe("coinflip_payout_ratio", Number.isFinite(ratio) ? ratio : 0, labels);
+    }
+  }
+
+  private logRound(ctx: GameBetContext, pickedSide: CoinFlipSide, result: GameBetRunnerResult): void {
+    const evaluation = this.getEvaluationMetadata(result);
+    const outcome = evaluation.outcome ?? pickedSide;
+    const isWin = evaluation.win ?? (result.result === "WIN");
+
+    this.logger.info("coinflip.bet.settled", {
+      operatorId: ctx.operatorId,
+      userId: ctx.userId,
+      game: ctx.game,
+      roundId: result.roundId,
+      betAmount: result.betAmount.toString(),
+      payoutAmount: result.payout.toString(),
+      pickedSide,
+      outcome,
+      win: isWin,
+      multiplier: evaluation.multiplier ?? 0,
+      serverSeedHash: result.pf.serverSeedHash,
+      clientSeed: result.pf.clientSeed,
+      nonce: result.pf.nonce,
+      mathVersion: result.mathVersion,
+      mode: ctx.mode,
+      currency: ctx.currency,
+    });
+  }
+
+  private metricLabels(ctx: GameBetContext): Record<string, string> {
+    return {
+      game: ctx.game,
+      operatorId: ctx.operatorId,
+      mode: ctx.mode,
+      currency: ctx.currency,
+    };
+  }
+
+  private getEvaluationMetadata(result: GameBetRunnerResult): Partial<CoinFlipEvaluationMetadata> {
+    return (result.metadata?.evaluation ?? {}) as Partial<CoinFlipEvaluationMetadata>;
+  }
 }
 
 function normalizeSide(value: unknown): CoinFlipSide {
   if (typeof value !== "string") {
-    throw new Error("CoinFlip: side is required");
+    throw new BadRequestException("CoinFlip: side is required");
   }
   const normalized = value.trim().toUpperCase();
   if (normalized !== "HEADS" && normalized !== "TAILS") {
-    throw new Error("CoinFlip: side must be HEADS or TAILS");
+    throw new BadRequestException("CoinFlip: side must be HEADS or TAILS");
   }
   return normalized as CoinFlipSide;
 }

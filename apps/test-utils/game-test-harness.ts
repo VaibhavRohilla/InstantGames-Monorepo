@@ -29,10 +29,19 @@ export interface GameTestHarness {
   kvStore: InMemoryStore;
 }
 
+export interface ProviderOverride {
+  provide: unknown;
+  useValue?: unknown;
+  useClass?: Type<any>;
+  useFactory?: (...args: unknown[]) => unknown;
+  inject?: unknown[];
+}
+
 export interface GameTestHarnessOptions {
-  controller: Type<any>;
+  controller: Type<any> | Type<any>[];
   service: Type<any>;
   providers?: Provider[];
+  overrides?: ProviderOverride[];
 }
 
 export async function createGameTestHarness(options: GameTestHarnessOptions): Promise<GameTestHarness> {
@@ -44,9 +53,11 @@ export async function createGameTestHarness(options: GameTestHarnessOptions): Pr
   if (debug) {
     console.log("[game-harness] building module");
   }
-  const moduleRef = await Test.createTestingModule({
+  const controllers = Array.isArray(options.controller) ? options.controller : [options.controller];
+
+  const moduleBuilder = Test.createTestingModule({
     imports: [AuthModule],
-    controllers: [options.controller],
+    controllers,
     providers: [
       options.service,
       ...(options.providers ?? []),
@@ -114,7 +125,31 @@ export async function createGameTestHarness(options: GameTestHarnessOptions): Pr
       { provide: METRICS, useClass: NoopMetrics },
       { provide: DB_CLIENT, useValue: dbClient },
     ],
-  }).compile();
+  });
+
+  if (options.overrides) {
+    for (const override of options.overrides) {
+      const builder = moduleBuilder.overrideProvider(override.provide as any);
+      if (override.useValue !== undefined) {
+        builder.useValue(override.useValue);
+        continue;
+      }
+      if (override.useClass) {
+        builder.useClass(override.useClass);
+        continue;
+      }
+      if (override.useFactory) {
+        builder.useFactory({
+          factory: override.useFactory,
+          inject: (override.inject ?? []) as any[],
+        });
+        continue;
+      }
+      throw new Error(`Unsupported override for provider ${String(override.provide)}`);
+    }
+  }
+
+  const moduleRef = await moduleBuilder.compile();
 
   if (debug) {
     console.log("[game-harness] initializing app");

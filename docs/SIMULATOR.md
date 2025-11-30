@@ -11,7 +11,7 @@ The Simulator CLI allows you to test game math engines and RTP (Return to Player
 pnpm --filter @instant-games/simulator-cli start:dev -- dice --rounds 10000 --bet 1000 --target 50 --condition under --houseEdge 1
 
 # CoinFlip
-pnpm --filter @instant-games/simulator-cli start:dev -- coinflip --rounds 10000 --bet 1000 --choice heads
+pnpm --filter @instant-games/simulator-cli start:dev -- coinflip --rounds 10000 --bet 1000 --side heads --houseEdge 1 --maxMultiplier 2
 
 # Roulette
 pnpm --filter @instant-games/simulator-cli start:dev -- roulette --rounds 10000 --bet 1000 --selection 5
@@ -74,7 +74,9 @@ pnpm --filter @instant-games/simulator-cli start:dev -- dice \
 Simple heads or tails game.
 
 **Parameters:**
-- `--choice`: "heads" or "tails" (default: "heads")
+- `--side`: "heads" or "tails" (default: "heads")
+- `--houseEdge`: Target house edge percentage (default: 1)
+- `--maxMultiplier`: Optional payout cap (no cap by default)
 
 ### 3. Roulette
 
@@ -159,7 +161,7 @@ See [Reference Guide](./REFERENCE.md#changing-rtp) for more details on changing 
 ```bash
 # Quick test all games with 1,000 rounds each
 pnpm --filter @instant-games/simulator-cli start:dev -- dice --rounds 1000 --bet 1000 --target 50 --condition under
-pnpm --filter @instant-games/simulator-cli start:dev -- coinflip --rounds 1000 --bet 1000 --choice heads
+pnpm --filter @instant-games/simulator-cli start:dev -- coinflip --rounds 1000 --bet 1000 --side heads --houseEdge 1
 pnpm --filter @instant-games/simulator-cli start:dev -- roulette --rounds 1000 --bet 1000 --selection 5
 pnpm --filter @instant-games/simulator-cli start:dev -- mines --rounds 1000 --bet 1000 --cell 0
 pnpm --filter @instant-games/simulator-cli start:dev -- hilo --rounds 1000 --bet 1000 --currentRank 7 --choice higher --houseEdge 1
